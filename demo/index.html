@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkillUp Coach — simulated Alexa+ experience</title>
+<style>body{font-family:system-ui;max-width:640px;margin:2rem auto;padding:0 1rem}.card{border:1px solid #ccc;border-radius:12px;padding:1rem;margin:.75rem 0}button{padding:.5rem 1rem;margin:.25rem}.choices button{display:block;width:100%;text-align:left}</style>
+<h1>SkillUp Coach (simulated Alexa+)</h1>
+<p>Static demo front-door for the self-hosted MCP server. Run the server, then Start.</p>
+<p>Server: <code id="ep">http://127.0.0.1:8000/mcp</code></p>
+<button id="start">Start coaching: Linux basics</button>
+<div id="q"></div>
+<div id="prog"></div>
+<script>
+let sid=null, key=null, qid=null, idc=1;
+async function rpc(method, params={}){
+  const h={"Content-Type":"application/json","Accept":"application/json, text/event-stream"};
+  if(sid) h["MCP-Session-Id"]=sid;
+  h["MCP-Protocol-Version"]="2025-11-25";
+  const r=await fetch(document.getElementById("ep").textContent,{method:"POST",headers:h,
+    body:JSON.stringify({jsonrpc:"2.0",id:idc++,method,params})});
+  const s=r.headers.get("MCP-Session-Id"); if(s) sid=s;
+  return r.json();
+}
+async function call(name, args){
+  const r=await rpc("tools/call",{name,arguments:args});
+  return JSON.parse(r.result.content[0].text);
+}
+document.getElementById("start").onclick=async()=>{
+  await rpc("initialize",{protocolVersion:"2025-11-25",capabilities:{},clientInfo:{name:"demo",version:"0.1"}});
+  const s=await call("start_coaching",{topic:"linux-basics"}); key=s.session_key; showQ();
+};
+async function showQ(){
+  const q=await call("next_question",{session_key:key});
+  if(q.done){document.getElementById("q").innerHTML="<p>Done.</p>";return;}
+  qid=q.question_id;
+  document.getElementById("q").innerHTML=`<div class="card"><h3>${q.card.title}</h3>
+    <p>${q.prompt}</p><div class="choices">${q.choices.map(c=>`<button data-c="${c}">${c}</button>`).join("")}</div></div>`;
+  document.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>answer(b.dataset.c));
+  const p=await call("get_progress",{session_key:key});
+  document.getElementById("prog").textContent=`Answered ${p.answered}, accuracy ${p.accuracy}`;
+}
+async function answer(c){
+  const r=await call("submit_answer",{session_key:key,question_id:qid,choice:c});
+  alert((r.correct?"Correct. ":"Not quite. ")+r.explain); showQ();
+}
+</script>
