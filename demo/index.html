@@ -40,6 +40,6 @@ async function showQ(){
 }
 async function answer(c){
   const r=await call("submit_answer",{session_key:key,question_id:qid,choice:c});
-  alert((r.correct?"Correct. ":"Not quite. ")+r.explain); showQ();
+  alert((r.correct?"Correct. ":"Not quite. ")+r.explain+(r.coach_tip?"\nCoach: "+r.coach_tip:"")); showQ();
 }
 </script>

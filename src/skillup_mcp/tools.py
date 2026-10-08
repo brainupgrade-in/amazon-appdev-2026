@@ -38,44 +38,43 @@ def _bank(topic):
     return QUESTION_BANK.get(topic, QUESTION_BANK["linux-basics"])
 
 
-def _llm_extra_question(topic):
-    """AWS Builder hook: one optional extra question via an OpenAI-compatible
-    endpoint (Bedrock/AgentCore proxy or any sponsor endpoint). Returns None
-    unless SKILLUP_LLM=1 and MODEL_ENDPOINT are set; never raises — the
-    offline bank always serves the demo on any failure."""
+def _bedrock_client():
+    """boto3 is imported only here, so the offline default stays stdlib-only."""
+    import boto3
+
+    return boto3.client("bedrock-runtime", region_name=os.environ.get("AWS_REGION", "ap-south-1"))
+
+
+def _converse(prompt, max_tokens):
+    """AWS Builder hook: one Amazon Bedrock Converse call. Returns the reply text,
+    or None unless SKILLUP_LLM=1; never raises — the offline bank always serves
+    the demo on any failure (no creds, no model access, throttling, timeout)."""
     if os.environ.get("SKILLUP_LLM") != "1":
         return None
-    endpoint = (os.environ.get("MODEL_ENDPOINT") or "").rstrip("/")
-    if not endpoint:
+    try:
+        resp = _bedrock_client().converse(
+            modelId=os.environ.get("BEDROCK_MODEL_ID", "apac.amazon.nova-lite-v1:0"),
+            messages=[{"role": "user", "content": [{"text": prompt}]}],
+            inferenceConfig={"maxTokens": max_tokens, "temperature": 0.7},
+        )
+        return resp["output"]["message"]["content"][0]["text"].strip()
+    except Exception:
+        return None
+
+
+def _llm_extra_question(topic):
+    """One AI-generated question appended to the session bank, or None."""
+    text = _converse(
+        "Return exactly one JSON object, no other text, with keys "
+        "id, prompt, choices (array of 4 strings), answer (0-3 index), explain: "
+        f"a Linux-basics quiz question about {topic}.",
+        300,
+    )
+    if not text:
         return None
     import json
-    import urllib.request
 
-    prompt = (
-        "Return exactly one JSON object, no other text, with keys "
-        'id, prompt, choices (array of 4 strings), answer (0-3 index), explain: '
-        f"a Linux-basics quiz question about {topic}."
-    )
-    body = json.dumps(
-        {
-            "model": os.environ.get("MODEL_NAME", "default"),
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 300,
-            "temperature": 0.7,
-        }
-    ).encode()
     try:
-        req = urllib.request.Request(
-            endpoint + "/v1/chat/completions",
-            data=body,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {os.environ.get('MODEL_TOKEN', '')}",
-            },
-        )
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            data = json.load(resp)
-        text = data["choices"][0]["message"]["content"]
         q = json.loads(text[text.index("{") : text.rindex("}") + 1])
         if (
             not isinstance(q.get("choices"), list)
@@ -89,10 +88,21 @@ def _llm_extra_question(topic):
             "choices": [str(c) for c in q["choices"]],
             "answer": int(q["answer"]),
             "explain": str(q.get("explain", "")),
-            "card": {"title": str(q["prompt"])[:40], "subtitle": "AI-generated", "image": None},
+            "card": {"title": str(q["prompt"])[:40], "subtitle": "AI-generated (Amazon Bedrock)", "image": None},
         }
     except Exception:
         return None
+
+
+def _llm_coach_tip(q, picked):
+    """Short personalised hint for a wrong answer, or None."""
+    wrong = q["choices"][picked] if 0 <= picked < len(q["choices"]) else "no valid choice"
+    return _converse(
+        f"A junior IT learner answered the quiz question {q['prompt']!r} with {wrong!r}; "
+        f"the correct answer is {q['choices'][q['answer']]!r}. In one or two short spoken "
+        "sentences, explain why their answer is wrong and how to remember the right one.",
+        120,
+    )
 
 
 def start_coaching(topic="linux-basics"):
@@ -138,12 +148,17 @@ def submit_answer(session_key, question_id, choice):
     st["answered"] += 1
     st["correct"] += 1 if ok else 0
     st["idx"] += 1
-    return {
+    result = {
         "correct": ok,
         "explain": q["explain"],
         "answer": q["choices"][q["answer"]],
         "has_next": st["idx"] < len(bank),
     }
+    if not ok:
+        tip = _llm_coach_tip(q, picked)
+        if tip:
+            result["coach_tip"] = tip
+    return result
 
 
 def get_progress(session_key):
