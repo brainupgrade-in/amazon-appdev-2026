@@ -18,10 +18,10 @@ With `SKILLUP_LLM=1`, `src/skillup_mcp/tools.py` calls the Bedrock **Converse AP
 `bedrock-runtime`) to add one AI-generated question per session and a spoken-style `coach_tip`
 on wrong answers. Any Bedrock error falls back to the offline bank, so the demo never breaks.
 ```bash
-python3 -m venv .venv && .venv/bin/pip install boto3   # then run the server with .venv/bin/python
+python3 -m venv .venv && .venv/bin/pip install boto3
 export SKILLUP_LLM=1 AWS_PROFILE=<profile> AWS_REGION=ap-south-1
 export BEDROCK_MODEL_ID=apac.amazon.nova-lite-v1:0   # default; any Converse-capable model id
-PYTHONPATH=src python3 -m skillup_mcp.server --port 8000
+PYTHONPATH=src .venv/bin/python -m skillup_mcp.server --port 8000
 ```
 IAM needs only `bedrock:InvokeModel` on the chosen model / inference profile.
 
