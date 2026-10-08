@@ -2,11 +2,13 @@
 
 Front-door for Alexa+. Routes coaching requests to the self-hosted MCP server
 (`src/skillup_mcp/server.py`, Streamable HTTP, spec 2025-11-25).
+Hosted endpoint: `https://skillup-coach.gheware-ai.com/mcp`.
 
 ## Invoke
 - "Coach me on Linux basics" → `start_coaching(topic="linux-basics")`
 - Render `next_question` as a card (title + prompt + choices).
-- `submit_answer(session_key, question_id, choice)` → speak `explain`, show next card.
+- Speak the prompt and choices as A–D; accept a letter, an ordinal, or the answer text.
+- `submit_answer(session_key, question_id, choice)` → speak `coach_tip` if present, else `explain`; show next card.
 - `get_progress(session_key)` → "Answered N, accuracy X".
 
 ## Grounding

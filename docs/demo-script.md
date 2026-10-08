@@ -2,40 +2,40 @@
 
 Rules: public YouTube/Vimeo, English, lead with the best material (judges stop at 3:00).
 No third-party trademarks, no copyrighted music/footage. Screen-record + voiceover only.
+Record in Chrome at https://skillup-coach.gheware-ai.com with sound on (the coach's voice is the demo).
 
 ## Shots & narration (approx timings)
-### 0:00–0:15 — Hook (the idea in one breath)
-- SHOW: title card "SkillUp Coach — hands-free upskilling on Alexa+".
-- SAY: "SkillUp Coach is a self-hosted MCP server for the Alexa+ track that coaches
-  junior IT learners by voice, with quiz cards, instant feedback and progress tracking."
+### 0:00–0:12 — Hook
+- SHOW: the live page, ring idle.
+- SAY: "SkillUp Coach is an MCP server for Alexa+ that coaches junior IT learners by voice —
+  you talk, it quizzes you, and when you're wrong, Amazon Bedrock explains why."
 
-### 0:15–1:10 — Live demo (best material first)
-- SHOW: terminal `PYTHONPATH=src python3 -m skillup_mcp.server --port 8000`.
-- SHOW: MCP round-trip (curl or inspector): `initialize` → session id →
-  `tools/call start_coaching` → `next_question` card JSON.
-- SHOW: `demo/index.html` in browser: click Start, answer one card right, one wrong,
-  progress line updates ("Answered 2, accuracy 0.5").
-- SAY: "Four tools, stateful sessions, cards a screen can render — all offline by default."
+### 0:12–1:15 — Live voice demo (best material first)
+- SHOW: press "Alexa, coach me on Linux basics". Coach speaks the first question and A–D choices.
+- DO: say "A" → "Correct!". Next question: say "slash etc slash passwd" → correct.
+- DO: deliberately say a wrong answer → red/green highlight, coach speaks a **Bedrock coach tip**.
+- SHOW: question 4 tagged "AI-generated (Amazon Bedrock)"; finish → "You got N of 4 right".
+- NOTE: start_coaching waits ~1–2 s for Bedrock — keep talking over it, don't cut.
 
-### 1:10–1:50 — How it's built (Tech Implementation)
-- SHOW: `src/skillup_mcp/server.py` + `tools.py` briefly; `skill/SKILL.md`.
-- SAY: "Single POST /mcp endpoint following MCP spec 2025-11-25: session headers,
-  protocol-version check, Origin validation. Stdlib only — no install. An Agent Skill
-  file fronts it for Alexa+, and an env-gated hook adds Bedrock personalization
-  for the AWS Builder mini-challenge without ever breaking the offline demo."
+### 1:15–1:55 — How it's built (Tech Implementation)
+- SHOW: README diagram; `server.py` (POST /mcp, session id, Origin check); `skill/SKILL.md`.
+- SHOW: terminal: curl `initialize` → `MCP-Session-Id`; `tools/list` → 4 tools.
+- SAY: "A self-hosted MCP server on spec 2025-11-25, Streamable HTTP. An Agent Skill tells Alexa+ when to call
+  each tool. It runs on AWS App Runner; the Bedrock Converse API with Amazon Nova Lite writes a fresh question
+  and personal coach tips — with an IAM role that can only call that one model, and an offline fallback."
 
-### 1:50–2:25 — Why it matters (Impact + Idea)
-- SHOW: progress JSON / second topic card.
-- SAY: "Corporate upskilling is a paying market; voice-plus-cards coaching reaches
-  learners where docs don't. Unlike a single-turn Q&A bot, sessions persist state
-  across turns, and the question bank is swappable per team."
+### 1:55–2:25 — Why it matters (Impact + Idea)
+- SAY: "Junior engineers learn in short gaps where docs don't work. Voice plus a card meets them there; the
+  session remembers progress, and the question bank is swappable per team — Linux today, Kubernetes next."
+- SAY (honest, brief): "Alexa+ launched in India last month, but the MCP Toolkit is US-only, so this runs as a
+  simulated Alexa+ — the server already speaks the toolkit's MCP version and transport."
 
-### 2:25–2:35 — Close
-- SHOW: repo URL + `python3 -m unittest` green run.
-- SAY: "Open source, MIT, runs in one command. Links in the description."
+### 2:25–2:40 — Close
+- SHOW: repo URL + `python3 -m unittest` green (21 tests); live URL.
+- SAY: "Open source, MIT. Try it live — link below."
 
 ## Recording checklist
-- [ ] Fresh terminal, large font, `127.0.0.1:8000` visible.
-- [ ] Browser demo pre-loaded; rehearse the two answers once.
-- [ ] `PYTHONPATH=src python3 -m unittest discover -s tests` green on screen for the close.
-- [ ] Export 1080p, check audio levels, upload unlisted-first to review, then public.
+- [ ] Chrome, mic allowed for skillup-coach.gheware-ai.com, system audio captured, quiet room.
+- [ ] Rehearse once; Bedrock text varies per run — that's fine, it proves it's live.
+- [ ] Big font in terminal; README diagram zoomed.
+- [ ] Export 1080p, check audio levels, upload unlisted first to review, then public.
