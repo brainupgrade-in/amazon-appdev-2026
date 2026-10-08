@@ -2,47 +2,183 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SkillUp Coach — simulated Alexa+ experience</title>
-<style>body{font-family:system-ui;max-width:640px;margin:2rem auto;padding:0 1rem}.card{border:1px solid #ccc;border-radius:12px;padding:1rem;margin:.75rem 0}button{padding:.5rem 1rem;margin:.25rem}.choices button{display:block;width:100%;text-align:left}</style>
-<h1>SkillUp Coach (simulated Alexa+)</h1>
-<p>Static demo front-door for the self-hosted MCP server. Run the server, then Start.</p>
-<p>Server: <code id="ep">http://127.0.0.1:8000/mcp</code></p>
-<button id="start">Start coaching: Linux basics</button>
-<div id="q"></div>
-<div id="prog"></div>
+<style>
+:root{--bg:#0b1220;--panel:#141d2f;--line:#26324a;--text:#e8eefc;--muted:#93a1bd;--ring:#25d0f0;--ok:#3ddc97;--bad:#ff7a7a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif}
+main{max-width:680px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.4rem;margin:0}
+.sub{color:var(--muted);font-size:.9rem;margin:.25rem 0 1.25rem;overflow-wrap:anywhere}
+.sub code{color:var(--text)}
+.top{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+#ring{flex:none;width:64px;height:64px;border-radius:50%;border:4px solid var(--line);transition:border-color .2s,box-shadow .2s}
+#ring.speaking{border-color:var(--ring);box-shadow:0 0 18px var(--ring)}
+#ring.listening{border-color:var(--ring);animation:pulse 1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 26px var(--ring)}}
+#status{color:var(--muted);font-size:.9rem}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+button{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.55rem .9rem;cursor:pointer}
+button:hover{border-color:var(--ring)}
+button.primary{background:var(--ring);color:#04202a;border-color:var(--ring);font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+#log{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.msg{max-width:88%;padding:.55rem .8rem;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+.msg.you{align-self:flex-end;background:#1d2a44}
+.msg .who{display:block;font-size:.75rem;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card .tag{font-size:.75rem;color:var(--ring)}
+.card h2{font-size:1.05rem;margin:.25rem 0 .75rem}
+.choices{display:grid;gap:8px}
+.choices button{text-align:left;display:flex;gap:10px}
+.choices b{color:var(--ring)}
+.choices button.right{border-color:var(--ok);opacity:1}
+.choices button.wrong{border-color:var(--bad);opacity:1}
+.feedback{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.feedback .ok{color:var(--ok)}.feedback .no{color:var(--bad)}
+.tip{color:var(--muted)}
+#prog{color:var(--muted);font-size:.9rem;margin-top:12px}
+</style>
+<main>
+  <div class="top">
+    <div id="ring" aria-hidden="true"></div>
+    <div>
+      <h1>SkillUp Coach</h1>
+      <div id="status">Simulated Alexa+ · press Start, then answer by voice or tap</div>
+    </div>
+  </div>
+  <p class="sub">MCP server: <code id="ep"></code></p>
+  <div class="controls">
+    <button id="start" class="primary">“Alexa, coach me on Linux basics”</button>
+    <button id="voice" aria-pressed="true">Voice: on</button>
+    <button id="mic" disabled>🎤 Answer by voice</button>
+  </div>
+  <div id="log" aria-live="polite"></div>
+  <div id="q"></div>
+  <div id="prog"></div>
+</main>
 <script>
 // Served by the MCP server itself (local or hosted) -> same-origin /mcp; opened as a file -> local default.
 const EP=location.protocol.startsWith("http")?location.origin+"/mcp":"http://127.0.0.1:8000/mcp";
-document.getElementById("ep").textContent=EP;
-let sid=null, key=null, qid=null, idc=1;
-async function rpc(method, params={}){
-  const h={"Content-Type":"application/json","Accept":"application/json, text/event-stream"};
+const $=id=>document.getElementById(id);
+$("ep").textContent=EP;
+const LETTERS=["A","B","C","D"];
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let sid=null,key=null,q=null,idc=1,voiceOn=!!window.speechSynthesis,busy=false;
+if(!voiceOn){$("voice").textContent="Voice: unavailable";$("voice").disabled=true;}
+
+async function rpc(method,params={}){
+  const h={"Content-Type":"application/json","Accept":"application/json, text/event-stream","MCP-Protocol-Version":"2025-11-25"};
   if(sid) h["MCP-Session-Id"]=sid;
-  h["MCP-Protocol-Version"]="2025-11-25";
-  const r=await fetch(EP,{method:"POST",headers:h,
-    body:JSON.stringify({jsonrpc:"2.0",id:idc++,method,params})});
+  const r=await fetch(EP,{method:"POST",headers:h,body:JSON.stringify({jsonrpc:"2.0",id:idc++,method,params})});
   const s=r.headers.get("MCP-Session-Id"); if(s) sid=s;
   return r.json();
 }
-async function call(name, args){
+async function call(name,args){
   const r=await rpc("tools/call",{name,arguments:args});
+  if(r.error) throw new Error(r.error.message);
   return JSON.parse(r.result.content[0].text);
 }
-document.getElementById("start").onclick=async()=>{
-  await rpc("initialize",{protocolVersion:"2025-11-25",capabilities:{},clientInfo:{name:"demo",version:"0.1"}});
-  const s=await call("start_coaching",{topic:"linux-basics"}); key=s.session_key; showQ();
-};
+
+// All model/tool text goes in via textContent, never innerHTML (Bedrock output is untrusted).
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+function say(who,text){
+  const m=el("div","msg"+(who==="You"?" you":""));m.append(el("span","who",who),document.createTextNode(text));
+  $("log").append(m);m.scrollIntoView({block:"nearest"});
+}
+function setRing(state,label){$("ring").className=state||"";$("status").textContent=label;}
+
+function speak(text){
+  if(!voiceOn){setRing("","Your turn");return Promise.resolve();}
+  return new Promise(res=>{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text.replace(/`/g,""));
+    u.rate=1.05;u.onend=u.onerror=()=>{setRing("","Your turn");res();};
+    setRing("speaking","Speaking…");speechSynthesis.speak(u);
+  });
+}
+async function alexa(text){say("Alexa",text);await speak(text);}
+
+// Map a spoken reply to a choice index: "B", "option c", "the second one", or the answer text.
+function parseAnswer(text,choices){
+  const t=text.toLowerCase().replace(/[.,!?]/g," ").replace(/\b(dash|minus|hyphen)\b/g,"-").replace(/\bslash\b/g,"/").replace(/\bdot\b/g,".").trim();
+  const words=t.split(/\s+/);
+  const ord={first:0,second:1,third:2,fourth:3,last:3};
+  const lettersSaid={a:0,b:1,be:1,bee:1,c:2,see:2,sea:2,d:3,dee:3};
+  for(const w of words) if(w in ord) return ord[w];
+  if(words.length<=3) for(const w of words) if(w in lettersSaid) return lettersSaid[w];
+  const norm=s=>s.toLowerCase().replace(/[^a-z0-9]/g,"");
+  const nt=norm(t);
+  let best=-1,bestLen=0;
+  choices.forEach((c,i)=>{const nc=norm(c);if(nc&&nt&&(nt.includes(nc)||nc.includes(nt))&&nc.length>bestLen){best=i;bestLen=nc.length;}});
+  return best;
+}
+
+async function start(){
+  $("log").replaceChildren();$("q").replaceChildren();$("prog").textContent="";
+  say("You","Alexa, coach me on Linux basics.");
+  setRing("speaking","Starting…");
+  sid=null;
+  await rpc("initialize",{protocolVersion:"2025-11-25",capabilities:{},clientInfo:{name:"alexa-sim",version:"0.2"}});
+  const s=await call("start_coaching",{topic:"linux-basics"});key=s.session_key;
+  await alexa(`Let's practise Linux basics. ${s.total} quick questions. Answer with a letter or say the answer.`);
+  await showQ();
+}
+
 async function showQ(){
-  const q=await call("next_question",{session_key:key});
-  if(q.done){document.getElementById("q").innerHTML="<p>Done.</p>";return;}
-  qid=q.question_id;
-  document.getElementById("q").innerHTML=`<div class="card"><h3>${q.card.title}</h3>
-    <p>${q.prompt}</p><div class="choices">${q.choices.map(c=>`<button data-c="${c}">${c}</button>`).join("")}</div></div>`;
-  document.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>answer(b.dataset.c));
-  const p=await call("get_progress",{session_key:key});
-  document.getElementById("prog").textContent=`Answered ${p.answered}, accuracy ${p.accuracy}`;
+  q=await call("next_question",{session_key:key});
+  const box=$("q");box.replaceChildren();
+  if(q.done){
+    const p=await call("get_progress",{session_key:key});
+    $("mic").disabled=true;
+    await alexa(`That's the set. You got ${p.correct} of ${p.answered} right. Say "coach me" any time for more.`);
+    return;
+  }
+  const card=el("div","card");
+  card.append(el("div","tag",`Question ${q.index+1} of ${q.total} · ${q.card.subtitle}`),el("h2",null,q.prompt));
+  const ch=el("div","choices");
+  q.choices.forEach((c,i)=>{const b=el("button");b.append(el("b",null,LETTERS[i]),el("span",null,c));b.onclick=()=>answer(i,`${LETTERS[i]}: ${c}`);ch.append(b);});
+  card.append(ch);box.append(card);
+  $("mic").disabled=!SR;
+  await alexa(`${q.prompt} ${q.choices.map((c,i)=>`${LETTERS[i]}: ${c}${/[.?!]$/.test(c)?"":"."}`).join(" ")}`);
+  if(voiceOn&&SR) listen();
 }
-async function answer(c){
-  const r=await call("submit_answer",{session_key:key,question_id:qid,choice:c});
-  alert((r.correct?"Correct. ":"Not quite. ")+r.explain+(r.coach_tip?"\nCoach: "+r.coach_tip:"")); showQ();
+
+async function answer(i,spoken){
+  if(busy||!q||q.done) return;busy=true;
+  try{
+    say("You",spoken);
+    const r=await call("submit_answer",{session_key:key,question_id:q.question_id,choice:i});
+    const btns=$("q").querySelectorAll(".choices button");
+    btns.forEach((b,j)=>{b.disabled=true;if(q.choices[j]===r.answer)b.classList.add("right");else if(j===i)b.classList.add("wrong");});
+    const fb=el("div","feedback");
+    fb.append(el("div",r.correct?"ok":"no",r.correct?"Correct.":`Not quite — it's ${r.answer}.`),el("div",null,r.explain));
+    if(r.coach_tip) fb.append(el("div","tip","Coach: "+r.coach_tip));
+    $("q").querySelector(".card").append(fb);
+    const p=await call("get_progress",{session_key:key});
+    $("prog").textContent=`Answered ${p.answered} · correct ${p.correct} · accuracy ${Math.round(p.accuracy*100)}%`;
+    await alexa((r.correct?"Correct! ":`Not quite. The answer is ${r.answer}. `)+(r.coach_tip||r.explain));
+    busy=false;
+    await showQ();
+  }finally{busy=false;}
 }
+
+function listen(){
+  if(!SR||!q||q.done) return;
+  const rec=new SR();rec.lang="en-US";rec.interimResults=false;rec.maxAlternatives=3;
+  setRing("listening","Listening… say A, B, C, D or the answer");
+  rec.onresult=e=>window.handleUtterance([...e.results[0]].map(a=>a.transcript));
+  rec.onerror=rec.onend=()=>{if($("ring").className==="listening")setRing("","Tap a choice or press 🎤");};
+  rec.start();
+}
+// Entry point for recognised speech (also callable from the console to test without a mic).
+window.handleUtterance=async alts=>{
+  if(!q||q.done) return;
+  alts=[].concat(alts);
+  for(const t of alts){const i=parseAnswer(t,q.choices);if(i>=0) return answer(i,t);}
+  say("You",alts[0]);await alexa("Sorry, I didn't catch that. Say A, B, C or D.");if(voiceOn)listen();
+};
+
+$("start").onclick=()=>start().catch(e=>{setRing("","Error");say("Alexa","Something went wrong: "+e.message);});
+$("mic").onclick=listen;
+$("voice").onclick=()=>{voiceOn=!voiceOn;if(!voiceOn)speechSynthesis.cancel();$("voice").textContent="Voice: "+(voiceOn?"on":"off");$("voice").setAttribute("aria-pressed",voiceOn);};
 </script>
