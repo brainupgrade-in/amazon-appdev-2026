@@ -25,4 +25,8 @@ PYTHONPATH=src .venv/bin/python -m skillup_mcp.server --port 8000
 ```
 IAM needs only `bedrock:InvokeModel` on the chosen model / inference profile.
 
+## Hosted
+Live on AWS App Runner (ap-south-1) with Bedrock on: demo page at `/`, MCP at `/mcp`, health at `/health`.
+Image: `Dockerfile` (`docker build -t skillup-coach .`); `ALLOWED_ORIGINS` lists extra browser origins.
+
 See `skill/SKILL.md`, `todo/skillup-coach.md`. Brief, tracks and status: `CLAUDE.md`.

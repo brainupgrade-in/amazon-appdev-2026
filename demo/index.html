@@ -10,12 +10,15 @@
 <div id="q"></div>
 <div id="prog"></div>
 <script>
+// Served by the MCP server itself (local or hosted) -> same-origin /mcp; opened as a file -> local default.
+const EP=location.protocol.startsWith("http")?location.origin+"/mcp":"http://127.0.0.1:8000/mcp";
+document.getElementById("ep").textContent=EP;
 let sid=null, key=null, qid=null, idc=1;
 async function rpc(method, params={}){
   const h={"Content-Type":"application/json","Accept":"application/json, text/event-stream"};
   if(sid) h["MCP-Session-Id"]=sid;
   h["MCP-Protocol-Version"]="2025-11-25";
-  const r=await fetch(document.getElementById("ep").textContent,{method:"POST",headers:h,
+  const r=await fetch(EP,{method:"POST",headers:h,
     body:JSON.stringify({jsonrpc:"2.0",id:idc++,method,params})});
   const s=r.headers.get("MCP-Session-Id"); if(s) sid=s;
   return r.json();

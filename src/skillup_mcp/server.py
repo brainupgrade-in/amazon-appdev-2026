@@ -6,13 +6,16 @@ GET returns 405 (spec-allowed when no SSE stream is offered).
 """
 import argparse
 import json
+import os
 import uuid
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import urlparse
 
 from . import tools as coaching
 
 PROTOCOL_VERSION = "2025-11-25"
+DEMO_PAGE = Path(__file__).resolve().parents[2] / "demo" / "index.html"
 
 _mcp_sessions: set = set()
 
@@ -70,7 +73,9 @@ def check_origin(origin):
         host = urlparse(origin).hostname or ""
     except Exception:
         return False
-    return host in ("localhost", "127.0.0.1")
+    allowed = {"localhost", "127.0.0.1"}
+    allowed |= {h.strip() for h in os.environ.get("ALLOWED_ORIGINS", "").split(",") if h.strip()}
+    return host in allowed
 
 
 def _ok(req_id, result, session_id=None):
@@ -139,8 +144,18 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(raw)
 
     def do_GET(self):
-        if urlparse(self.path).path == "/mcp":
+        path = urlparse(self.path).path
+        if path == "/mcp":
             self._send(405, {"error": "SSE stream not offered; use POST"})
+        elif path == "/health":
+            self._send(200, {"status": "ok"})
+        elif path == "/":
+            raw = DEMO_PAGE.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
         else:
             self._send(404, {"error": "not found"})
 
@@ -187,8 +202,12 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, out["body"], session_id=out.get("session_id"), proto=PROTOCOL_VERSION)
 
 
+def make_server(host="127.0.0.1", port=8000):
+    return ThreadingHTTPServer((host, port), Handler)
+
+
 def run(port=8000, host="127.0.0.1"):
-    httpd = HTTPServer((host, port), Handler)
+    httpd = make_server(host, port)
     print(f"skillup-coach MCP on http://{host}:{port}/mcp (protocol {PROTOCOL_VERSION})")
     httpd.serve_forever()
 
