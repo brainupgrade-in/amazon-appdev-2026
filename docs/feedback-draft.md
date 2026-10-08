@@ -34,3 +34,18 @@
    **Steps:** checked `list-inference-profiles` → `apac.amazon.nova-lite-v1:0` ACTIVE; called Converse via boto3 through the MCP server.
    **Expected vs actual:** expected the base model id to work in-region; actual: use the `apac.` inference-profile id. Call then succeeded first try (2026-10-08).
    **Severity:** low. **Workaround:** list inference profiles first. **Suggestion:** show the exact callable id per region on the model card.
+5. **Task:** connect the hosted SkillUp Coach MCP server to real Alexa+ (MCP Toolkit add-on).
+   **Steps:** read MCP Toolkit overview + quickstart; signed in to developer.amazon.com (India-based account);
+   opened `developer.amazon.com/alexa/console/ask/addons` (2026-10-08).
+   **Expected vs actual:** expected the add-ons console + web simulator; actual: page shows only "Coming Soon".
+   Docs say "The MCP Toolkit is available in the United States", while Alexa+ itself launched in India
+   (Early Access, 16 Sep 2026) — so Indian users have Alexa+ but Indian developers cannot build for it.
+   **Severity:** high for non-US builders in an Alexa+ track. **Workaround:** simulated Alexa+ web app (track fallback).
+   **Suggestion:** open the add-on console/simulator to all developer accounts (even with US-only distribution),
+   and say up front on the hackathon Resources page that the MCP Toolkit is US-only.
+6. **Task:** check MCP Toolkit server requirements against an existing MCP server.
+   **Observed:** quickstart requires OAuth 2.1 auth-code + PKCE (401 for unauthenticated) and <500 ms round trip.
+   **Friction:** the 500 ms budget rules out a synchronous LLM call inside a tool (our Bedrock call is ~1–2 s);
+   no "no-auth"/API-key option for public, non-personal tools. **Suggestion:** document an async/progressive
+   pattern for LLM-backed tools and allow unauthenticated tools that touch no user data.
+
