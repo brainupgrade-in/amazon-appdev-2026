@@ -84,7 +84,11 @@ Both modules:
 - Done when: `grep -ri linux src demo skill` is empty; each module has ≥15 questions, each with a source URL;
   a test proves an AI question for module M is requested about M; all tests green.
 
-### G. AgentCore go/no-go spike (13 Oct, ≤ half a day)
+### G. AgentCore go/no-go spike (13 Oct, ≤ half a day) — GO (13 Oct)
+- Result: Strands hello-world agent on **AgentCore Runtime** (direct code deploy: arm64 zip via `uv`, S3,
+  Python 3.13) answered via Nova Lite in 5.3 s cold; **AgentCore Memory** (`skillup_coach_memory`, summary +
+  user-preference strategies) stored and listed a learner event. Least-privilege execution role (Nova Lite + this
+  memory only). Check: `agent/gonogo.py`. Item 0 deployed to App Runner the same day; live smoke OK.
 - Deploy a hello-world Strands agent to **AgentCore Runtime** in ap-south-1 calling Nova Lite; create one
   **AgentCore Memory** resource and write/read one event.
 - Go: continue with items 1–2 on AgentCore. No-go by end of day: run the Strands agent inside App Runner and keep
