@@ -255,5 +255,37 @@
    "subtitle": "Inference settings",
    "source": "https://docs.aws.amazon.com/bedrock/latest/userguide/inference-parameters.html"
   }
+ ],
+ "open": [
+  {
+   "id": "ce-open-1",
+   "prompt": "Why do examples help a prompt, and about how many should you use?",
+   "subtitle": "Few-shot prompting",
+   "key_points": [
+    "Examples show the model the format, tone or structure to copy",
+    "About three to five varied examples work best"
+   ],
+   "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices#use-examples-effectively"
+  },
+  {
+   "id": "ce-open-2",
+   "prompt": "What is context engineering, and why is the context window a limited resource?",
+   "subtitle": "Context engineering",
+   "key_points": [
+    "Choosing and curating what goes into the model's context window",
+    "Attention is limited, so adding more tokens can lower quality"
+   ],
+   "source": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"
+  },
+  {
+   "id": "ce-open-3",
+   "prompt": "How would you protect an agent from prompt injection hidden in web pages it reads?",
+   "subtitle": "Prompt injection",
+   "key_points": [
+    "Treat retrieved or external content as untrusted data, kept separate from instructions",
+    "Give the agent least privilege or require human approval for risky actions"
+   ],
+   "source": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/"
+  }
  ]
 }
