@@ -47,10 +47,19 @@ def client_ip(headers, peer):
 TOOL_DEFS = [
     {
         "name": "start_coaching",
-        "description": "Start a coaching run on a topic. Returns a session_key.",
+        "description": "Start a coaching run on a learning module. Returns a session_key, the module title "
+        "and the number of questions.",
         "inputSchema": {
             "type": "object",
-            "properties": {"topic": {"type": "string", "default": "linux-basics"}},
+            "properties": {
+                "topic": {
+                    "type": "string",
+                    "enum": ["context-engineering", "agentcore"],
+                    "default": "context-engineering",
+                    "description": "context-engineering = Prompts and Context Engineering; "
+                    "agentcore = Building agents with Amazon Bedrock AgentCore",
+                }
+            },
         },
     },
     {

@@ -4,16 +4,26 @@
 
 SkillUp Coach is a self-hosted **MCP server** (spec 2025-11-25, Streamable HTTP) that coaches junior IT
 learners by voice: quiz cards, instant feedback, a spoken coach tip when you get it wrong, and progress
-tracking across turns. An **Agent Skill** fronts it for Alexa+, a **simulated Alexa+ web app** speaks and
+tracking across turns. Two learning modules: **Prompts and Context Engineering** and **Building agents with
+Amazon Bedrock AgentCore**. An **Agent Skill** fronts it for Alexa+, a **simulated Alexa+ web app** speaks and
 listens in the browser, and **Amazon Bedrock** (Nova Lite) personalises each session.
 
 **Try it live:** https://skillup-coach.gheware-ai.com — press Start, allow the microphone, answer by voice
-("B", "the second one", "ls dash la") or tap. MCP endpoint: `https://skillup-coach.gheware-ai.com/mcp`.
+("B", "the second one", "three to five") or tap. MCP endpoint: `https://skillup-coach.gheware-ai.com/mcp`.
 
 ## Why
-Junior engineers learn Linux, DevOps and cloud basics in short gaps — commuting, between tickets — where
-reading docs doesn't work. Voice-first coaching with a card on screen meets them there. Sessions keep state
-across turns, so the coach knows where you are and how you're doing; the question bank is swappable per team.
+Junior engineers learn agentic AI in short gaps — commuting, between tickets — where reading docs doesn't
+work. Voice-first coaching with a card on screen meets them there. Sessions keep state across turns, so the
+coach knows where you are and how you're doing; question packs are data files, swappable per team.
+
+## Learning modules (`packs/*.json`)
+| Module | Covers | Sources |
+|---|---|---|
+| `context-engineering` — Prompts and Context Engineering | few-shot vs zero-shot, system prompts, structure, long context, context budgets, compaction, just-in-time retrieval, RAG, tool descriptions, prompt injection, evals | Anthropic and AWS prompt-engineering docs, OWASP LLM01 |
+| `agentcore` — Building agents with Amazon Bedrock AgentCore | Runtime, Memory and its strategies, Gateway, Identity, Observability, Code Interpreter, Browser, when to use which | Official AgentCore developer guide |
+
+Each question carries a `source` URL. A session draws 4 questions; with Bedrock on, one more question is
+generated **grounded only in the module's own facts** (the AI may not add facts from elsewhere).
 
 ## How it works
 ```
@@ -28,7 +38,7 @@ across turns, so the coach knows where you are and how you're doing; the questio
               │  optional, env-gated (SKILLUP_LLM=1)
               ▼
    Amazon Bedrock Converse API (Nova Lite, ap-south-1)
-     + 1 AI-generated question per session · + coach_tip on wrong answers
+     + 1 AI question per session, grounded in the pack's facts · + coach_tip on wrong answers
      any error → offline question bank (demo never breaks)
 ```
 - **MCP compliance:** single `POST /mcp`; `initialize` returns `MCP-Session-Id`, later calls must send it;
@@ -42,7 +52,8 @@ across turns, so the coach knows where you are and how you're doing; the questio
 ```bash
 PYTHONPATH=src python3 -m skillup_mcp.server --port 8000
 # open http://127.0.0.1:8000/  (demo page, same-origin /mcp)
-PYTHONPATH=src python3 -m unittest discover -s tests      # 21 tests
+PYTHONPATH=src python3 -m unittest discover -s tests
+python3 scripts/smoke.py http://127.0.0.1:8000             # end-to-end check (also run after each deploy)
 ```
 
 ### With Amazon Bedrock (AWS Builder mini-challenge)

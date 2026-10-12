@@ -11,7 +11,7 @@ from skillup_mcp.tools import (
 
 class TestCoachingFlow(unittest.TestCase):
     def test_start_next_answer_progress(self):
-        s = start_coaching("linux-basics")
+        s = start_coaching("context-engineering")
         self.assertIn("session_key", s)
         q = next_question(s["session_key"])
         self.assertIn("question_id", q)
@@ -28,7 +28,7 @@ class TestCoachingFlow(unittest.TestCase):
             next_question("nope")
 
     def test_wrong_question_rejected(self):
-        s = start_coaching("linux-basics")
+        s = start_coaching("context-engineering")
         with self.assertRaises(KeyError):
             submit_answer(s["session_key"], "bad-id", "x")
 

@@ -48,7 +48,8 @@ button:disabled{opacity:.5;cursor:default}
   </div>
   <p class="sub">MCP server: <code id="ep"></code></p>
   <div class="controls">
-    <button id="start" class="primary">“Alexa, coach me on Linux basics”</button>
+    <button id="start" class="primary" data-topic="context-engineering" data-say="Alexa, coach me on context engineering.">“Alexa, coach me on context engineering”</button>
+    <button id="start2" class="primary" data-topic="agentcore" data-say="Alexa, coach me on AgentCore.">“Alexa, coach me on AgentCore”</button>
     <button id="voice" aria-pressed="true">Voice: on</button>
     <button id="mic" disabled>🎤 Answer by voice</button>
   </div>
@@ -113,14 +114,14 @@ function parseAnswer(text,choices){
   return best;
 }
 
-async function start(){
+async function start(topic,spoken){
   $("log").replaceChildren();$("q").replaceChildren();$("prog").textContent="";
-  say("You","Alexa, coach me on Linux basics.");
+  say("You",spoken);
   setRing("speaking","Starting…");
   sid=null;
   await rpc("initialize",{protocolVersion:"2025-11-25",capabilities:{},clientInfo:{name:"alexa-sim",version:"0.2"}});
-  const s=await call("start_coaching",{topic:"linux-basics"});key=s.session_key;
-  await alexa(`Let's practise Linux basics. ${s.total} quick questions. Answer with a letter or say the answer.`);
+  const s=await call("start_coaching",{topic});key=s.session_key;
+  await alexa(`Let's practise ${s.title}. ${s.total} quick questions. Answer with a letter or say the answer.`);
   await showQ();
 }
 
@@ -178,7 +179,7 @@ window.handleUtterance=async alts=>{
   say("You",alts[0]);await alexa("Sorry, I didn't catch that. Say A, B, C or D.");if(voiceOn)listen();
 };
 
-$("start").onclick=()=>start().catch(e=>{setRing("","Error");say("Alexa","Something went wrong: "+e.message);});
+for(const b of [$("start"),$("start2")]) b.onclick=()=>start(b.dataset.topic,b.dataset.say).catch(e=>{setRing("","Error");say("Alexa","Something went wrong: "+e.message);});
 $("mic").onclick=listen;
 $("voice").onclick=()=>{voiceOn=!voiceOn;if(!voiceOn)speechSynthesis.cancel();$("voice").textContent="Voice: "+(voiceOn?"on":"off");$("voice").setAttribute("aria-pressed",voiceOn);};
 </script>

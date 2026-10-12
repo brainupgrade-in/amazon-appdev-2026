@@ -54,7 +54,10 @@ AgentCore APIs (Runtime, Memory, Gateway) verified reachable in **ap-south-1** f
 - Done when: rollback tag exists in ECR; budget alarm visible; smoke script (`/health`, `/`, MCP `initialize` →
   `tools/call`) passes.
 
-### 0. Re-theme: two learning modules (13–14 Oct)
+### 0. Re-theme: two learning modules (13–14 Oct) — DONE 13 Oct (code; not yet deployed)
+- Done: `packs/context-engineering.json` (18 q) + `packs/agentcore.json` (18 q, AgentCore dev-guide sources);
+  engine loads packs, 4-question sessions, AI question + coach tip grounded in pack facts; demo has both module
+  buttons; Agent Skill + README updated; 32 tests green; live Bedrock check OK. Devpost text + video script: item 5.
 Module A — **Prompts and Context Engineering** (replaces Linux basics):
 - 15–20 voice-friendly questions: role/instructions/examples, few-shot vs zero-shot, system prompts,
   context-window budgeting, retrieval and chunking, tool descriptions, prompt-injection defence, eval loops.

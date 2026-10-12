@@ -1,0 +1,259 @@
+{
+ "id": "context-engineering",
+ "title": "Prompts and Context Engineering",
+ "version": "2026-10-13",
+ "questions": [
+  {
+   "id": "ce-01",
+   "prompt": "What is few-shot prompting?",
+   "choices": [
+    "Asking the model several times",
+    "Showing examples in the prompt",
+    "Using a smaller model",
+    "Limiting the answer length"
+   ],
+   "answer": 1,
+   "explain": "Few-shot, or multishot, prompting puts a few worked examples in the prompt so the model copies their format, tone and structure.",
+   "subtitle": "Few-shot prompting",
+   "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices#use-examples-effectively"
+  },
+  {
+   "id": "ce-02",
+   "prompt": "How many examples do prompting guides suggest for best few-shot results?",
+   "choices": [
+    "Exactly one",
+    "None at all",
+    "Fifty or more",
+    "Three to five"
+   ],
+   "answer": 3,
+   "explain": "Three to five well-chosen, varied examples usually work best: enough to show the pattern without crowding the prompt.",
+   "subtitle": "Few-shot prompting",
+   "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices#use-examples-effectively"
+  },
+  {
+   "id": "ce-03",
+   "prompt": "A prompt with clear instructions but no examples is called what?",
+   "choices": [
+    "Fine-tuning",
+    "Chain of thought",
+    "Zero-shot prompting",
+    "Few-shot prompting"
+   ],
+   "answer": 2,
+   "explain": "Zero-shot means the model gets only instructions, no examples. Add examples and it becomes few-shot.",
+   "subtitle": "Zero-shot prompting",
+   "source": "https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-engineering-guidelines.html"
+  },
+  {
+   "id": "ce-04",
+   "prompt": "What is a system prompt mainly used for?",
+   "choices": [
+    "Setting the model's role and rules",
+    "Storing chat history",
+    "Choosing the GPU",
+    "Counting tokens"
+   ],
+   "answer": 0,
+   "explain": "The system prompt sets the role, tone and rules for the whole conversation. Even one sentence of role focuses the model.",
+   "subtitle": "System prompts",
+   "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices#give-claude-a-role"
+  },
+  {
+   "id": "ce-05",
+   "prompt": "What is the best first fix for a vague prompt?",
+   "choices": [
+    "Raise the temperature",
+    "Repeat the question twice",
+    "Make the prompt shorter",
+    "Add clear, specific instructions"
+   ],
+   "answer": 3,
+   "explain": "Be clear and direct: say exactly what you want, for whom, and in what format. Models can't read your mind.",
+   "subtitle": "Be clear and direct",
+   "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices#be-clear-and-direct"
+  },
+  {
+   "id": "ce-06",
+   "prompt": "Why wrap documents and instructions in tags like context and instructions?",
+   "choices": [
+    "To separate data from instructions",
+    "To make the prompt look neat",
+    "To save money",
+    "To hide text from the model"
+   ],
+   "answer": 0,
+   "explain": "Tags help the model parse a complex prompt without mixing up instructions, context, examples and inputs.",
+   "subtitle": "Structure with tags",
+   "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices#structure-prompts-with-xml-tags"
+  },
+  {
+   "id": "ce-07",
+   "prompt": "In a long prompt, where should big documents usually go?",
+   "choices": [
+    "At the top, above the question",
+    "At the very end",
+    "In a separate chat",
+    "Split across many prompts"
+   ],
+   "answer": 0,
+   "explain": "Put long documents first and the question last. Tests showed up to thirty percent better answers on complex, multi-document inputs.",
+   "subtitle": "Long context",
+   "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices#long-context-prompting"
+  },
+  {
+   "id": "ce-08",
+   "prompt": "For long documents, what helps the model focus before answering?",
+   "choices": [
+    "Raising the temperature",
+    "Removing all headings",
+    "Asking it to quote relevant parts first",
+    "Translating the document"
+   ],
+   "answer": 2,
+   "explain": "Ask the model to pull out the relevant quotes first, then answer. That grounds the answer in the document and skips the noise.",
+   "subtitle": "Long context",
+   "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices#long-context-prompting"
+  },
+  {
+   "id": "ce-09",
+   "prompt": "Context engineering is mainly about what?",
+   "choices": [
+    "Training a new model",
+    "Choosing what goes into the context window",
+    "Designing the user interface",
+    "Compressing images"
+   ],
+   "answer": 1,
+   "explain": "Context engineering curates the smallest useful set of tokens the model sees at each step: instructions, tools, data and history.",
+   "subtitle": "Context engineering",
+   "source": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"
+  },
+  {
+   "id": "ce-10",
+   "prompt": "Why not stuff everything into the context window?",
+   "choices": [
+    "Long prompts are always free",
+    "Models refuse long prompts",
+    "It always speeds up answers",
+    "Attention is limited, so quality can drop"
+   ],
+   "answer": 3,
+   "explain": "Context is a finite resource with diminishing returns. The more you add, the thinner the model's attention budget gets.",
+   "subtitle": "Attention budget",
+   "source": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"
+  },
+  {
+   "id": "ce-11",
+   "prompt": "What does compaction do for a long-running agent?",
+   "choices": [
+    "Deletes all tools",
+    "Summarises history to free up context",
+    "Switches to a larger model",
+    "Encrypts the conversation"
+   ],
+   "answer": 1,
+   "explain": "Compaction summarises a conversation that is nearing the context limit, then continues from the summary with the details that matter.",
+   "subtitle": "Compaction",
+   "source": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"
+  },
+  {
+   "id": "ce-12",
+   "prompt": "With just-in-time context, what does an agent keep instead of full data?",
+   "choices": [
+    "Lightweight references like file paths",
+    "Screenshots of every page",
+    "A copy of the whole database",
+    "Nothing at all"
+   ],
+   "answer": 0,
+   "explain": "The agent keeps light pointers such as file paths, links or saved queries, and loads the actual data with tools only when it needs it.",
+   "subtitle": "Just-in-time context",
+   "source": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"
+  },
+  {
+   "id": "ce-13",
+   "prompt": "Retrieval augmented generation adds what to the prompt?",
+   "choices": [
+    "A bigger model",
+    "Random examples",
+    "Relevant passages retrieved at query time",
+    "The user's password"
+   ],
+   "answer": 2,
+   "explain": "RAG searches a knowledge base for passages related to the question and adds them to the prompt, so answers rest on your data.",
+   "subtitle": "Retrieval",
+   "source": "https://docs.aws.amazon.com/bedrock/latest/userguide/kb-how-it-works.html"
+  },
+  {
+   "id": "ce-14",
+   "prompt": "Why do tool descriptions matter so much for agents?",
+   "choices": [
+    "They change the model weights",
+    "Users never see tools",
+    "They set the API price",
+    "The model reads them to pick tools"
+   ],
+   "answer": 3,
+   "explain": "Tool names and descriptions are loaded into the agent's context. Clear, distinct descriptions help it choose and call the right tool.",
+   "subtitle": "Tool descriptions",
+   "source": "https://www.anthropic.com/engineering/writing-tools-for-agents"
+  },
+  {
+   "id": "ce-15",
+   "prompt": "What is prompt injection?",
+   "choices": [
+    "Making a prompt shorter",
+    "Adding examples to a prompt",
+    "Input that overrides the model's instructions",
+    "Calling two models at once"
+   ],
+   "answer": 2,
+   "explain": "Prompt injection is input, direct or hidden in retrieved content, that changes the model's behaviour against your instructions.",
+   "subtitle": "Prompt injection",
+   "source": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/"
+  },
+  {
+   "id": "ce-16",
+   "prompt": "Which is a good defence against injection hidden in retrieved web pages?",
+   "choices": [
+    "Mark external content as untrusted",
+    "Trust all retrieved text",
+    "Raise the temperature",
+    "Remove the system prompt"
+   ],
+   "answer": 0,
+   "explain": "Keep external content clearly separated and labelled as untrusted data, give the model least privilege, and require approval for risky actions.",
+   "subtitle": "Prompt injection",
+   "source": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/"
+  },
+  {
+   "id": "ce-17",
+   "prompt": "How do you know a prompt change actually helped?",
+   "choices": [
+    "It feels better",
+    "The answer got longer",
+    "Test it on an evaluation set",
+    "Ask the model if it improved"
+   ],
+   "answer": 2,
+   "explain": "Define success criteria, then run the old and new prompts on the same test cases and compare scores.",
+   "subtitle": "Evaluation",
+   "source": "https://platform.claude.com/docs/en/test-and-evaluate/develop-tests"
+  },
+  {
+   "id": "ce-18",
+   "prompt": "For consistent, factual answers, how should you set temperature?",
+   "choices": [
+    "Maximum",
+    "High",
+    "Random each time",
+    "Low"
+   ],
+   "answer": 3,
+   "explain": "Lower temperature makes the model favour its most likely tokens, so answers are more consistent. Higher values add variety.",
+   "subtitle": "Inference settings",
+   "source": "https://docs.aws.amazon.com/bedrock/latest/userguide/inference-parameters.html"
+  }
+ ]
+}
