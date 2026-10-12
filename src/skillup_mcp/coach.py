@@ -41,7 +41,7 @@ def local_grade(question, answer):
     return {"verdict": verdict, "covered": covered, "missing": missing, "feedback": feedback, "graded_by": "local"}
 
 
-def grade(question, answer, module, learner):
+def grade(question, answer, module, learner, lang="en"):
     arn = os.environ.get("SKILLUP_AGENT_ARN")
     if arn:
         try:
@@ -53,7 +53,7 @@ def grade(question, answer, module, learner):
                 payload=json.dumps({"action": "grade", "module": module, "topic": question.get("subtitle", ""),
                                     "question": question["prompt"],
                                     "key_points": question["key_points"], "answer": answer[:1000],
-                                    "learner_id": learner}),
+                                    "learner_id": learner, "lang": lang}),
             )
             body = json.loads(resp["response"].read())
             if body.get("verdict") in VERDICTS and body.get("feedback"):

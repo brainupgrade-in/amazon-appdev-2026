@@ -126,7 +126,10 @@ Both modules:
 - Done when: live `/` runs a session whose plan comes from the agent (trace id visible); a free-form answer is graded
   against a 10-case fixture with ≥ 8/10 agreement; on any agent failure the multiple-choice flow still completes.
 
-### 3. Hindi/Hinglish mode + accessibility (19 Oct, then code freeze)
+### 3. Hindi/Hinglish mode + accessibility (19 Oct, then code freeze) — DONE 13 Oct (live)
+- Done: `lang=hinglish` → Bedrock coach tips, AgentCore agent feedback and coach framing in Hinglish (Roman
+  script; questions stay English), en-IN voice + recognition; keyboard answers A–D/1–4, focus to each new
+  question, visible focus, reduced motion, `lang` attribute. Eval 11/12 after change; 51 tests green.
 - Hinglish coaching via Nova Lite plus browser `hi-IN` speech — strong India impact story (already in "What's next").
 - Accessibility pass on `demo/index.html`: keyboard-only flow, ARIA live region, captions — feeds the Design score.
 - Done when: one full session runs in Hinglish; the whole flow works with keyboard only.

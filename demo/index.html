@@ -1,4 +1,5 @@
 <!doctype html>
+<html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SkillUp Coach — simulated Alexa+ experience</title>
@@ -14,6 +15,9 @@ h1{font-size:1.4rem;margin:0}
 #ring{flex:none;width:64px;height:64px;border-radius:50%;border:4px solid var(--line);transition:border-color .2s,box-shadow .2s}
 #ring.speaking{border-color:var(--ring);box-shadow:0 0 18px var(--ring)}
 #ring.listening{border-color:var(--ring);animation:pulse 1s infinite}
+@media (prefers-reduced-motion:reduce){#ring.listening{animation:none;box-shadow:0 0 18px var(--ring)}}
+button:focus-visible,textarea:focus-visible,h2:focus-visible{outline:3px solid var(--ring);outline-offset:2px}
+.keys{color:var(--muted);font-size:.8rem;margin-top:8px}
 @keyframes pulse{50%{box-shadow:0 0 26px var(--ring)}}
 #status{color:var(--muted);font-size:.9rem}
 .controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
@@ -55,6 +59,7 @@ button:disabled{opacity:.5;cursor:default}
     <button id="start" class="primary" data-topic="context-engineering" data-say="Alexa, coach me on context engineering.">“Alexa, coach me on context engineering”</button>
     <button id="start2" class="primary" data-topic="agentcore" data-say="Alexa, coach me on AgentCore.">“Alexa, coach me on AgentCore”</button>
     <button id="voice" aria-pressed="true">Voice: on</button>
+    <button id="lang" aria-pressed="false">Language: English</button>
     <button id="mic" disabled>🎤 Answer by voice</button>
   </div>
   <div id="log" aria-live="polite"></div>
@@ -67,6 +72,21 @@ const EP=location.protocol.startsWith("http")?location.origin+"/mcp":"http://127
 const $=id=>document.getElementById(id);
 $("ep").textContent=EP;
 const LETTERS=["A","B","C","D"];
+// Coach language: English, or Hinglish (Hindi-English mix; questions stay in English).
+let LANG=(()=>{try{return localStorage.getItem("skillup-lang")||"en";}catch(e){return "en";}})();
+const T={
+  en:{intro:(t,n)=>`Let's practise ${t}. ${n} quick questions. Answer with a letter or say the answer.`,
+      right:"Correct! ",wrong:a=>`Not quite. The answer is ${a}. `,open:p=>`Last one, in your own words. ${p}`,
+      done:(c,n)=>`That's the set. You got ${c} of ${n} right. Say "coach me" any time for more.`,
+      sorry:"Sorry, I didn't catch that. Say A, B, C or D.",label:"English"},
+  hinglish:{intro:(t,n)=>`Chaliye, ${t} practice karte hain. ${n} quick questions. Letter boliye, ya answer boliye.`,
+      right:"Sahi jawab! ",wrong:a=>`Nahi, sahi answer hai ${a}. `,open:p=>`Aakhri sawaal, apne shabdon mein. ${p}`,
+      done:(c,n)=>`Set khatam! ${n} mein se ${c} sahi. Jab chahein, "coach me" boliye.`,
+      sorry:"Maaf kijiye, samajh nahi aaya. A, B, C ya D boliye.",label:"Hinglish"}};
+const tr=()=>T[LANG]||T.en;
+function setLang(l){LANG=l;try{localStorage.setItem("skillup-lang",l);}catch(e){}
+  $("lang").textContent="Language: "+tr().label;$("lang").setAttribute("aria-pressed",l==="hinglish");}
+
 // Anonymous learner id for cross-session memory (AgentCore Memory on the server); falls back to per-visit.
 const LEARNER=(()=>{let id=null;try{id=localStorage.getItem("skillup-learner");}catch(e){}
   if(!id){id=crypto.randomUUID();try{localStorage.setItem("skillup-learner",id);}catch(e){}}return id;})();
@@ -100,6 +120,7 @@ function speak(text){
   return new Promise(res=>{
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(text.replace(/`/g,""));
+    if(LANG==="hinglish"){u.lang="en-IN";const v=speechSynthesis.getVoices().find(v=>v.lang==="en-IN");if(v)u.voice=v;}
     u.rate=1.05;u.onend=u.onerror=()=>{setRing("","Your turn");res();};
     setRing("speaking","Speaking…");speechSynthesis.speak(u);
   });
@@ -127,9 +148,9 @@ async function start(topic,spoken){
   setRing("speaking","Starting…");
   sid=null;
   await rpc("initialize",{protocolVersion:"2025-11-25",capabilities:{},clientInfo:{name:"alexa-sim",version:"0.2"}});
-  const s=await call("start_coaching",{topic,learner_id:LEARNER});key=s.session_key;
+  const s=await call("start_coaching",{topic,learner_id:LEARNER,lang:LANG});key=s.session_key;
   if(s.welcome_back) await alexa(s.welcome_back);
-  await alexa(`Let's practise ${s.title}. ${s.total} quick questions. Answer with a letter or say the answer.`);
+  await alexa(tr().intro(s.title,s.total));
   await showQ();
 }
 
@@ -139,7 +160,7 @@ async function showQ(){
   if(q.done){  // keep the last card (and its feedback) on screen
     const p=await call("get_progress",{session_key:key});
     $("mic").disabled=true;
-    await alexa(`That's the set. You got ${p.correct} of ${p.answered} right. Say "coach me" any time for more.`);
+    await alexa(tr().done(p.correct,p.answered));
     return;
   }
   box.replaceChildren();
@@ -151,13 +172,15 @@ async function showQ(){
     const row=el("div","row");const send=el("button","primary","Submit answer");send.onclick=()=>answerOpen(ta.value);
     row.append(send);card.append(ta,row);box.append(card);
     $("mic").disabled=!SR;
-    await alexa(`Last one, in your own words. ${q.prompt}`);
+    card.querySelector("h2").tabIndex=-1;card.querySelector("h2").focus();
+    await alexa(tr().open(q.prompt));
     if(voiceOn&&SR) listen();
     return;
   }
   const ch=el("div","choices");
   q.choices.forEach((c,i)=>{const b=el("button");b.append(el("b",null,LETTERS[i]),el("span",null,c));b.onclick=()=>answer(i,`${LETTERS[i]}: ${c}`);ch.append(b);});
-  card.append(ch);box.append(card);
+  card.append(ch,el("div","keys","Keyboard: press A–D or 1–4"));box.append(card);
+  card.querySelector("h2").tabIndex=-1;card.querySelector("h2").focus();
   $("mic").disabled=!SR;
   await alexa(`${q.prompt} ${q.choices.map((c,i)=>`${LETTERS[i]}: ${c}${/[.?!]$/.test(c)?"":"."}`).join(" ")}`);
   if(voiceOn&&SR) listen();
@@ -176,7 +199,7 @@ async function answer(i,spoken){
     $("q").querySelector(".card").append(fb);
     const p=await call("get_progress",{session_key:key});
     $("prog").textContent=`Answered ${p.answered} · correct ${p.correct} · accuracy ${Math.round(p.accuracy*100)}%`;
-    await alexa((r.correct?"Correct! ":`Not quite. The answer is ${r.answer}. `)+(r.coach_tip||r.explain));
+    await alexa((r.correct?tr().right:tr().wrong(r.answer))+(r.coach_tip||r.explain));
     busy=false;
     await showQ();
   }finally{busy=false;}
@@ -207,7 +230,7 @@ async function answerOpen(text){
 
 function listen(){
   if(!SR||!q||q.done) return;
-  const rec=new SR();rec.lang="en-US";rec.interimResults=false;rec.maxAlternatives=3;
+  const rec=new SR();rec.lang=LANG==="hinglish"?"en-IN":"en-US";rec.interimResults=false;rec.maxAlternatives=3;
   setRing("listening",q.kind==="open"?"Listening… answer in your own words":"Listening… say A, B, C, D or the answer");
   rec.onresult=e=>window.handleUtterance([...e.results[0]].map(a=>a.transcript));
   rec.onerror=rec.onend=()=>{if($("ring").className==="listening")setRing("","Tap a choice or press 🎤");};
@@ -219,10 +242,17 @@ window.handleUtterance=async alts=>{
   alts=[].concat(alts);
   if(q.kind==="open") return answerOpen(alts[0]);
   for(const t of alts){const i=parseAnswer(t,q.choices);if(i>=0) return answer(i,t);}
-  say("You",alts[0]);await alexa("Sorry, I didn't catch that. Say A, B, C or D.");if(voiceOn)listen();
+  say("You",alts[0]);await alexa(tr().sorry);if(voiceOn)listen();
 };
 
 for(const b of [$("start"),$("start2")]) b.onclick=()=>start(b.dataset.topic,b.dataset.say).catch(e=>{setRing("","Error");say("Alexa","Something went wrong: "+e.message);});
 $("mic").onclick=listen;
+$("lang").onclick=()=>setLang(LANG==="hinglish"?"en":"hinglish");setLang(LANG);
+// Keyboard answers for the multiple-choice card (not while typing an open answer).
+document.addEventListener("keydown",e=>{
+  if(!q||q.done||q.kind!=="choice"||e.target.tagName==="TEXTAREA"||e.ctrlKey||e.metaKey||e.altKey) return;
+  const i="abcd".indexOf(e.key.toLowerCase())>=0?"abcd".indexOf(e.key.toLowerCase()):"1234".indexOf(e.key);
+  if(i>=0){const b=$("q").querySelectorAll(".choices button")[i];if(b&&!b.disabled){e.preventDefault();b.click();}}
+});
 $("voice").onclick=()=>{voiceOn=!voiceOn;if(!voiceOn)speechSynthesis.cancel();$("voice").textContent="Voice: "+(voiceOn?"on":"off");$("voice").setAttribute("aria-pressed",voiceOn);};
 </script>

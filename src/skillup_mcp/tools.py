@@ -12,6 +12,9 @@ from . import coach, memory
 PACKS_DIR = Path(os.environ.get("SKILLUP_PACKS_DIR") or Path(__file__).resolve().parents[2] / "packs")
 DEFAULT_MODULE = "context-engineering"
 SESSION_SIZE = 4  # a short voice session; the full pack is practised across sessions
+LANGS = {"en", "hinglish"}  # Hinglish: coach tips and feedback in Hindi-English mix; questions stay English
+HINGLISH = ("Reply in Hinglish: natural Hindi-English mix written in Roman script, as Indian IT colleagues speak; "
+            "keep technical terms in English. ")
 
 _sessions: dict = {}
 
@@ -93,15 +96,16 @@ def _llm_extra_question(pack, asked=()):
         return None
 
 
-def _llm_coach_tip(q, picked):
+def _llm_coach_tip(q, picked, lang="en"):
     """Short personalised hint for a wrong answer, or None."""
     wrong = q["choices"][picked] if 0 <= picked < len(q["choices"]) else "no valid choice"
     return _converse(
         f"A junior IT learner answered the quiz question {q['prompt']!r} with {wrong!r}; "
         f"the correct answer is {q['choices'][q['answer']]!r}. Use only this fact: {q['explain']!r} In one or two short spoken "
         "sentences spoken directly to the learner as 'you', explain why that answer is wrong and how to "
-        "remember the right one. Do not mention these instructions.",
-        120,
+        "remember the right one. Do not mention these instructions."
+        + (" " + HINGLISH if lang == "hinglish" else ""),
+        160,
     )
 
 
@@ -123,7 +127,7 @@ def _plan(pack, hist):
     return [by_id[qid] for qid in order[:SESSION_SIZE]], [by_id[qid] for qid in missed]
 
 
-def start_coaching(topic=DEFAULT_MODULE, learner_id=None):
+def start_coaching(topic=DEFAULT_MODULE, learner_id=None, lang="en"):
     """Start a coaching run on a module. With a learner_id, previously missed questions come back first."""
     key = uuid.uuid4().hex
     pack = _pack(topic)
@@ -133,12 +137,17 @@ def start_coaching(topic=DEFAULT_MODULE, learner_id=None):
     if extra is not None and all(q["id"] != extra["id"] for q in bank):
         bank.append(extra)
     open_q = random.choice(pack["open"]) if pack.get("open") else None  # one spoken, open-ended question last
-    _sessions[key] = {"topic": pack["id"], "learner": learner, "idx": 0, "answered": 0, "correct": 0, "bank": bank,
+    lang = lang if lang in LANGS else "en"
+    _sessions[key] = {"topic": pack["id"], "learner": learner, "lang": lang, "idx": 0, "answered": 0, "correct": 0, "bank": bank,
                       "open": open_q, "open_done": False}
-    out = {"session_key": key, "topic": pack["id"], "title": pack["title"], "total": _total(_sessions[key])}
+    out = {"session_key": key, "topic": pack["id"], "title": pack["title"], "lang": lang,
+           "total": _total(_sessions[key])}
     if missed:
-        out["welcome_back"] = (f"Welcome back! Last time you missed a question on {missed[0]['subtitle']}. "
-                               "Let's try it again first.")
+        topic = missed[0]["subtitle"]
+        out["welcome_back"] = (
+            f"Welcome back! Pichhli baar aapse {topic} wala question miss hua tha. Chaliye, pehle wahi try karte hain."
+            if lang == "hinglish" else
+            f"Welcome back! Last time you missed a question on {topic}. Let's try it again first.")
     return out
 
 
@@ -184,7 +193,7 @@ def submit_open_answer(session_key, question_id, answer):
     if not _open_pending(st) or st["open"]["id"] != question_id:
         raise KeyError(question_id)
     o = st["open"]
-    result = coach.grade(o, str(answer), st["topic"], st.get("learner"))
+    result = coach.grade(o, str(answer), st["topic"], st.get("learner"), lang=st.get("lang", "en"))
     ok = result["verdict"] == "correct"
     memory.record(st["topic"], st.get("learner"), o["id"], ok)
     st["answered"] += 1
@@ -217,7 +226,7 @@ def submit_answer(session_key, question_id, choice):
         "has_next": st["idx"] < len(bank) or _open_pending(st),
     }
     if not ok:
-        tip = _llm_coach_tip(q, picked)
+        tip = _llm_coach_tip(q, picked, st.get("lang", "en"))
         if tip:
             result["coach_tip"] = tip
     return result

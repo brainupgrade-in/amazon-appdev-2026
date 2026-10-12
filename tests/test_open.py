@@ -74,7 +74,9 @@ class TestOpenFlow(unittest.TestCase):
         p = tools.get_progress(s["session_key"])
         self.assertEqual(p["answered"], tools.SESSION_SIZE + 1)
         self.assertTrue(tools.next_question(s["session_key"])["done"])
-        self.assertIn({"question": q["question_id"], "correct": False}, memory.history("context-engineering", LEARNER))
+        with patch.dict(os.environ, OFF, clear=True):
+            hist = memory.history("context-engineering", LEARNER)
+        self.assertIn({"question": q["question_id"], "correct": False}, hist)
 
     def test_wrong_open_question_id_rejected(self):
         s = self.start()

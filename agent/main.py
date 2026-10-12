@@ -98,12 +98,15 @@ def invoke(payload):
         return {"result": str(agent(payload.get("prompt", "Say hello.")))}
     learner = payload.get("learner_id")
     tools = [learner_history] if (MEMORY_ID and learner) else []
-    agent = Agent(model=model, system_prompt=SYSTEM, tools=tools, callback_handler=None)  # fresh per request
+    system = SYSTEM + ("\n- Write the feedback in Hinglish: natural Hindi-English mix in Roman script, as Indian IT "
+                       "colleagues speak; keep technical terms in English." if payload.get("lang") == "hinglish" else "")
+    agent = Agent(model=model, system_prompt=system, tools=tools, callback_handler=None)  # fresh per request
     points = "\n".join(f"- {p}" for p in payload["key_points"])
     prompt = (f"Module: {payload.get('module')}\nTopic: {payload.get('topic', '')}\n"
               + (f"Learner id: {learner}\n" if learner else "")
               + f"Question: {payload['question']}\nKey points:\n{points}\n"
-              f"<answer>{payload.get('answer', '')}</answer>")
+              f"<answer>{payload.get('answer', '')}</answer>"
+              + ("\nFeedback language: Hinglish." if payload.get("lang") == "hinglish" else ""))
     result = agent(prompt, structured_output_model=Grade)
     used = sorted(set(result.metrics.tool_metrics)) if getattr(result, "metrics", None) else []
     g = result.structured_output

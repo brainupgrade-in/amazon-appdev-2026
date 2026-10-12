@@ -25,6 +25,13 @@ coach knows where you are and how you're doing; question packs are data files, s
 Each question carries a `source` URL. A session draws 4 questions; with Bedrock on, one more question is
 generated **grounded only in the module's own facts** (the AI may not add facts from elsewhere).
 
+## Hinglish and accessibility
+- **Language: Hinglish** (toggle on the page; `start_coaching(lang="hinglish")`): the coach's framing, Bedrock coach
+  tips and the AgentCore agent's feedback switch to natural Hindi-English mix in Roman script, spoken with an Indian
+  English voice and recognised as `en-IN`. Questions stay in English, as technical terms are English anyway.
+- **Keyboard:** answer with A–D or 1–4; focus moves to each new question; visible focus; reduced-motion support;
+  every spoken line is also shown as text in the transcript.
+
 ## Memory across sessions (Amazon Bedrock AgentCore Memory)
 Each answer is stored as an event in **AgentCore Memory** (actor `public/demo/<learner>`, session
 `progress-<module>`). Next time, up to two recently missed questions come back first, with a spoken
