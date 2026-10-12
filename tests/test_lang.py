@@ -39,3 +39,11 @@ class TestLanguage(unittest.TestCase):
         with patch.dict(os.environ, env, clear=True), patch.object(coach, "_client", return_value=client):
             coach.grade(q, "answer", "context-engineering", None, lang="hinglish")
         self.assertEqual(json.loads(client.invoke_agent_runtime.call_args.kwargs["payload"])["lang"], "hinglish")
+
+
+class TestTipLength(unittest.TestCase):
+    def test_coach_tip_capped_at_two_sentences_for_voice(self):
+        long = "First sentence here. Second one too! Third should go. Fourth as well."
+        self.assertEqual(tools._spoken(long), "First sentence here. Second one too!")
+        self.assertEqual(tools._spoken("No end punctuation"), "No end punctuation")
+        self.assertLessEqual(len(tools._spoken("word " * 200)), 260)

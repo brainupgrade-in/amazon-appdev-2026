@@ -96,6 +96,15 @@ def _llm_extra_question(pack, asked=()):
         return None
 
 
+def _spoken(text, sentences=2, limit=260):
+    """Keep a coach tip short enough to say aloud: first two sentences, hard cap on length."""
+    import re
+
+    parts = re.split(r"(?<=[.!?])\s+", text.strip())
+    out = " ".join(parts[:sentences])
+    return out if len(out) <= limit else out[:limit].rsplit(" ", 1)[0] + "…"
+
+
 def _llm_coach_tip(q, picked, lang="en"):
     """Short personalised hint for a wrong answer, or None."""
     wrong = q["choices"][picked] if 0 <= picked < len(q["choices"]) else "no valid choice"
@@ -228,7 +237,7 @@ def submit_answer(session_key, question_id, choice):
     if not ok:
         tip = _llm_coach_tip(q, picked, st.get("lang", "en"))
         if tip:
-            result["coach_tip"] = tip
+            result["coach_tip"] = _spoken(tip)
     return result
 
 
