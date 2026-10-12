@@ -31,8 +31,9 @@ Each answer is stored as an event in **AgentCore Memory** (actor `public/demo/<l
 "Welcome back — last time you missed a question on …", then unseen questions, then the rest (spaced repetition).
 Set `SKILLUP_MEMORY_ID` to enable it; without it, memory is kept in-process. Memory failures never break a session.
 
-**Privacy:** the learner is an anonymous random UUID kept in the browser's localStorage — no name, no login,
-no voice recording leaves the browser (speech is recognised locally by the browser). Events expire after 90 days.
+**Privacy:** the learner is an anonymous random UUID kept in the browser's localStorage — no name, no login.
+Speech recognition uses the browser's built-in Web Speech API (in Chrome this can use Google's online speech
+service); the SkillUp Coach server never receives audio, only the recognised answer text. Events expire after 90 days.
 
 ## How it works
 ```
