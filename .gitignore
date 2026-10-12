@@ -6,3 +6,6 @@ __pycache__/
 node_modules/
 *.log
 .DS_Store
+# Local working notes (account details) — never published
+CLAUDE.md
+todo/
