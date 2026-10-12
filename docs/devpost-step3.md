@@ -15,16 +15,22 @@ Form read 12 Oct 2026. Fields marked ⚠ need the user's own answer.
 - **New or existing before 31 Aug 2026:** New (first commit 6 Oct 2026)
 
 ## AWS Builder Mini Challenge — Yes
-**Which AWS services did you incorporate and how?**
-- **Amazon Bedrock (Converse API) with Amazon Nova Lite** (`apac.amazon.nova-lite-v1:0`, ap-south-1). Two calls in
-  `src/skillup_mcp/tools.py`: `start_coaching` asks Nova Lite for one extra quiz question as JSON (validated, then
-  appended to the session as "AI-generated (Amazon Bedrock)"); `submit_answer` asks for a one-or-two-sentence spoken
-  coach tip about the learner's specific wrong answer. Any Bedrock error falls back to the offline question bank.
-- **AWS App Runner** hosts the container at https://skillup-coach.gheware-ai.com (0.25 vCPU / 0.5 GB).
-- **Amazon ECR** stores the image (`skillup-coach:latest`); App Runner pulls it through an access role.
-- **AWS IAM**: the App Runner instance role can call `bedrock:InvokeModel` on Nova Lite only — no access keys in
-  the image or repo.
-- Documented in the README (architecture + deploy steps) and covered by unit tests with Bedrock mocked.
+**Which AWS services did you incorporate and how?** (updated 13 Oct)
+- **Amazon Bedrock AgentCore Runtime:** hosts the SkillUp coach agent (Strands Agents on Amazon Nova Lite), deployed
+  as an arm64 zip (`agent/main.py`, `agent/deploy.py`). The MCP server invokes it for every open-ended spoken answer
+  (`src/skillup_mcp/coach.py`); it grades each key point with evidence via structured output, and the verdict is
+  computed in code. One warm runtime session per learner.
+- **Amazon Bedrock AgentCore Memory:** one event per answer per learner (`src/skillup_mcp/memory.py`), summary and
+  user-preference strategies; spaced repetition brings missed questions back first ("Welcome back…"), and the
+  agent's `learner_history` tool reads the same memory to personalise feedback.
+- **Amazon Bedrock AgentCore Observability:** ADOT instrumentation + CloudWatch Transaction Search; traces show
+  `invoke_agent` → `execute_tool learner_history` → Memory `ListEvents` → Nova `chat`.
+- **Amazon Bedrock (Converse API) with Amazon Nova Lite:** one extra question per session and spoken coach tips,
+  grounded only in the module's own facts; offline fallback on any error.
+- **AWS App Runner** (MCP server + demo, custom domain), **Amazon ECR** (images, rollback tag), **Amazon S3** (agent
+  code package), **AWS IAM** (least privilege: Nova Lite only / this memory only / this runtime only),
+  **Amazon CloudWatch** (traces, logs), **AWS Budgets** (credit alarm).
+- Documented in the README and `docs/top3-plan.md`; 52 unit tests; grading eval `agent/eval_grading.py`.
 
 ## Open Source Mini Challenge — Yes
 - **Contribution URL:** https://github.com/brainupgrade-in/minimal-mcp-http
