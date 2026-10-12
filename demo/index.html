@@ -46,7 +46,7 @@ button:disabled{opacity:.5;cursor:default}
       <div id="status">Simulated Alexa+ · press Start, then answer by voice or tap</div>
     </div>
   </div>
-  <p class="sub">MCP server: <code id="ep"></code></p>
+  <p class="sub">MCP server: <code id="ep"></code><br>Progress is remembered with an anonymous ID kept in this browser (no name, no login).</p>
   <div class="controls">
     <button id="start" class="primary" data-topic="context-engineering" data-say="Alexa, coach me on context engineering.">“Alexa, coach me on context engineering”</button>
     <button id="start2" class="primary" data-topic="agentcore" data-say="Alexa, coach me on AgentCore.">“Alexa, coach me on AgentCore”</button>
@@ -63,6 +63,9 @@ const EP=location.protocol.startsWith("http")?location.origin+"/mcp":"http://127
 const $=id=>document.getElementById(id);
 $("ep").textContent=EP;
 const LETTERS=["A","B","C","D"];
+// Anonymous learner id for cross-session memory (AgentCore Memory on the server); falls back to per-visit.
+const LEARNER=(()=>{let id=null;try{id=localStorage.getItem("skillup-learner");}catch(e){}
+  if(!id){id=crypto.randomUUID();try{localStorage.setItem("skillup-learner",id);}catch(e){}}return id;})();
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 let sid=null,key=null,q=null,idc=1,voiceOn=!!window.speechSynthesis,busy=false;
 if(!voiceOn){$("voice").textContent="Voice: unavailable";$("voice").disabled=true;}
@@ -120,7 +123,8 @@ async function start(topic,spoken){
   setRing("speaking","Starting…");
   sid=null;
   await rpc("initialize",{protocolVersion:"2025-11-25",capabilities:{},clientInfo:{name:"alexa-sim",version:"0.2"}});
-  const s=await call("start_coaching",{topic});key=s.session_key;
+  const s=await call("start_coaching",{topic,learner_id:LEARNER});key=s.session_key;
+  if(s.welcome_back) await alexa(s.welcome_back);
   await alexa(`Let's practise ${s.title}. ${s.total} quick questions. Answer with a letter or say the answer.`);
   await showQ();
 }

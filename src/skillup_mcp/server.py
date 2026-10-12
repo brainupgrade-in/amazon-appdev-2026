@@ -58,7 +58,12 @@ TOOL_DEFS = [
                     "default": "context-engineering",
                     "description": "context-engineering = Prompts and Context Engineering; "
                     "agentcore = Building agents with Amazon Bedrock AgentCore",
-                }
+                },
+                "learner_id": {
+                    "type": "string",
+                    "description": "Optional anonymous learner id (UUID). Enables cross-session memory: "
+                    "questions missed last time come back first.",
+                },
             },
         },
     },

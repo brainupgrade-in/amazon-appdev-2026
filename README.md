@@ -25,6 +25,15 @@ coach knows where you are and how you're doing; question packs are data files, s
 Each question carries a `source` URL. A session draws 4 questions; with Bedrock on, one more question is
 generated **grounded only in the module's own facts** (the AI may not add facts from elsewhere).
 
+## Memory across sessions (Amazon Bedrock AgentCore Memory)
+Each answer is stored as an event in **AgentCore Memory** (actor `public/demo/<learner>`, session
+`progress-<module>`). Next time, up to two recently missed questions come back first, with a spoken
+"Welcome back — last time you missed a question on …", then unseen questions, then the rest (spaced repetition).
+Set `SKILLUP_MEMORY_ID` to enable it; without it, memory is kept in-process. Memory failures never break a session.
+
+**Privacy:** the learner is an anonymous random UUID kept in the browser's localStorage — no name, no login,
+no voice recording leaves the browser (speech is recognised locally by the browser). Events expire after 90 days.
+
 ## How it works
 ```
  Alexa+ (simulated web app: speech in/out)          Agent Skill (skill/SKILL.md)

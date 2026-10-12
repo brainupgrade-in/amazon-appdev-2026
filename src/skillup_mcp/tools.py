@@ -6,6 +6,8 @@ import uuid
 from functools import lru_cache
 from pathlib import Path
 
+from . import memory
+
 # Question packs are data: packs/<module>.json (id, title, version, questions with a source URL each).
 PACKS_DIR = Path(os.environ.get("SKILLUP_PACKS_DIR") or Path(__file__).resolve().parents[2] / "packs")
 DEFAULT_MODULE = "context-engineering"
@@ -103,16 +105,39 @@ def _llm_coach_tip(q, picked):
     )
 
 
-def start_coaching(topic=DEFAULT_MODULE):
-    """Start a coaching run on a module. Returns session handle for next_question/submit_answer."""
+def _plan(pack, hist):
+    """Spaced repetition: up to 2 recently missed questions first, then unseen ones, then the rest."""
+    by_id = {q["id"]: q for q in pack["questions"]}
+    last = {}
+    for h in hist:
+        last[h["question"]] = h["correct"]
+    missed = []
+    for h in reversed(hist):  # most recent miss first
+        qid = h["question"]
+        if qid in by_id and last[qid] is False and qid not in missed:
+            missed.append(qid)
+    unseen = [qid for qid in by_id if qid not in last]
+    random.shuffle(unseen)
+    seen_ok = [qid for qid in dict.fromkeys(h["question"] for h in hist) if by_id.get(qid) and last[qid]]
+    order = missed[:2] + unseen + missed[2:] + seen_ok
+    return [by_id[qid] for qid in order[:SESSION_SIZE]], [by_id[qid] for qid in missed]
+
+
+def start_coaching(topic=DEFAULT_MODULE, learner_id=None):
+    """Start a coaching run on a module. With a learner_id, previously missed questions come back first."""
     key = uuid.uuid4().hex
     pack = _pack(topic)
-    bank = random.sample(pack["questions"], min(SESSION_SIZE, len(pack["questions"])))
+    learner = learner_id if memory.valid(learner_id) else None
+    bank, missed = _plan(pack, memory.history(pack["id"], learner))
     extra = _llm_extra_question(pack, [q["prompt"] for q in bank])
     if extra is not None and all(q["id"] != extra["id"] for q in bank):
         bank.append(extra)
-    _sessions[key] = {"topic": pack["id"], "idx": 0, "answered": 0, "correct": 0, "bank": bank}
-    return {"session_key": key, "topic": pack["id"], "title": pack["title"], "total": len(bank)}
+    _sessions[key] = {"topic": pack["id"], "learner": learner, "idx": 0, "answered": 0, "correct": 0, "bank": bank}
+    out = {"session_key": key, "topic": pack["id"], "title": pack["title"], "total": len(bank)}
+    if missed:
+        out["welcome_back"] = (f"Welcome back! Last time you missed a question on {missed[0]['subtitle']}. "
+                               "Let's try it again first.")
+    return out
 
 
 def next_question(session_key):
@@ -144,6 +169,7 @@ def submit_answer(session_key, question_id, choice):
     else:
         picked = -1
     ok = picked == q["answer"]
+    memory.record(st["topic"], st.get("learner"), q["id"], ok)
     st["answered"] += 1
     st["correct"] += 1 if ok else 0
     st["idx"] += 1

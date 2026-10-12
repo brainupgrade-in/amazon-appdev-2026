@@ -94,7 +94,10 @@ Both modules:
 - Go: continue with items 1–2 on AgentCore. No-go by end of day: run the Strands agent inside App Runner and keep
   AgentCore Memory if it worked; log the blocker in the friction log.
 
-### 1. Cross-session memory + adaptive practice — AgentCore Memory (14–15 Oct)
+### 1. Cross-session memory + adaptive practice — AgentCore Memory (14–15 Oct) — DONE 13 Oct
+- Done: `src/skillup_mcp/memory.py` (AgentCore Memory events, in-process fallback, never raises); spaced-repetition
+  plan in `tools.py`; browser UUID learner id; welcome-back line; 40 tests green; e2e verified across a server
+  restart with real AgentCore Memory; App Runner instance role granted CreateEvent/ListEvents on this memory only.
 - Learner id: random UUID generated in the browser, kept in localStorage; no login, no names, no PII
   (simulated Alexa+). Privacy note in the README.
 - Memory namespace `org/cohort/learner` (hackathon: `public/demo/<uuid>`); each answer logged as an event
