@@ -139,7 +139,9 @@ Both modules:
   from a paid cohort. No names or voices in the video without consent.
 - Report only "N learners tried it; X% said…" — no learning-gain claims.
 
-### 5. Video re-cut + Devpost update (20–21 Oct — a full day for the video)
+### 5. Video re-cut + Devpost update (20–21 Oct — a full day for the video) — DONE 13 Oct
+- Done: v2 video (2:49) public https://www.youtube.com/watch?v=ncJ5iSOvbao (v1 unlisted); Devpost pitch, story,
+  tags, video link and AWS Builder answer updated (entry still SUBMITTED); friction-log entries 6–9 added.
 - New features (memory greeting, agent-graded open answer) on screen before 0:30; total under 2:55; no
   third-party UI.
 - Update the Devpost story, AWS Builder write-up (AgentCore Runtime + Memory + Observability + Strands), test counts,

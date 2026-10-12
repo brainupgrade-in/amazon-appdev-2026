@@ -60,7 +60,7 @@ python · model-context-protocol · amazon-bedrock · amazon-bedrock-agentcore �
 - https://github.com/brainupgrade-in/amazon-appdev-2026
 
 ### Video
-https://www.youtube.com/watch?v=ncJ5iSOvbao (v2, replaces https://www.youtube.com/watch?v=d-RyZ5Es5qI once approved)
+https://www.youtube.com/watch?v=ncJ5iSOvbao (v2, public since 13 Oct; v1 d-RyZ5Es5qI now unlisted)
 
 ## Step 3 — Additional info
 (Fill once the form's questions are visible. Sources: track = Alexa+; mini challenges = AWS Builder +
