@@ -111,7 +111,13 @@ Both modules:
   among the first 2 questions and the greeting names its topic — passes in a unit test with Memory mocked and in one
   live run across two App Runner deploys.
 
-### 2. Agentic coach — Strands Agents on AgentCore Runtime (16–18 Oct)
+### 2. Agentic coach — Strands Agents on AgentCore Runtime (16–18 Oct) — DONE 13 Oct (live)
+- Done: open-ended question per session (3 per module, key points from verified facts); `agent/main.py` Strands
+  agent on AgentCore Runtime grades per key point (structured output, verdict computed in code), calls
+  `learner_history` (AgentCore Memory) to personalise feedback, treats the answer as untrusted; local key-point
+  fallback. Eval `agent/eval_grading.py`: 10/10 base, 10–12/12 incl. memory cases across runs (target ≥ 10/12).
+  ~2 s warm, 6–9 s cold. Demo: spoken/typed answer + covered/missed card. CloudWatch Transaction Search enabled
+  (ADOT in agent). Known limit: misses lean strict (full answer occasionally graded partial). 48 tests green.
 - The agent plans the session from the learner's memory, asks one open-ended question ("why put examples before the
   task in a prompt?") and grades the spoken free-form answer with a rubric; multiple-choice flow stays.
 - MCP tools call the agent asynchronously so tool replies stay < 500 ms (ready for the real Alexa+ toolkit).

@@ -36,6 +36,10 @@ button:disabled{opacity:.5;cursor:default}
 .feedback{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .feedback .ok{color:var(--ok)}.feedback .no{color:var(--bad)}
 .tip{color:var(--muted)}
+.open textarea{width:100%;min-height:84px;font:inherit;color:var(--text);background:#0f1729;border:1px solid var(--line);border-radius:10px;padding:.6rem}
+.open .row{display:flex;gap:8px;margin-top:8px}
+.points{margin:.5rem 0 0;padding-left:1.1rem}.points li.ok{color:var(--ok)}.points li.no{color:var(--bad)}
+.by{font-size:.75rem;color:var(--ring);margin-top:8px}
 #prog{color:var(--muted);font-size:.9rem;margin-top:12px}
 </style>
 <main>
@@ -131,15 +135,26 @@ async function start(topic,spoken){
 
 async function showQ(){
   q=await call("next_question",{session_key:key});
-  const box=$("q");box.replaceChildren();
-  if(q.done){
+  const box=$("q");
+  if(q.done){  // keep the last card (and its feedback) on screen
     const p=await call("get_progress",{session_key:key});
     $("mic").disabled=true;
     await alexa(`That's the set. You got ${p.correct} of ${p.answered} right. Say "coach me" any time for more.`);
     return;
   }
+  box.replaceChildren();
   const card=el("div","card");
   card.append(el("div","tag",`Question ${q.index+1} of ${q.total} · ${q.card.subtitle}`),el("h2",null,q.prompt));
+  if(q.kind==="open"){
+    card.classList.add("open");
+    const ta=el("textarea");ta.placeholder="Say it, or type your answer here";ta.id="openText";
+    const row=el("div","row");const send=el("button","primary","Submit answer");send.onclick=()=>answerOpen(ta.value);
+    row.append(send);card.append(ta,row);box.append(card);
+    $("mic").disabled=!SR;
+    await alexa(`Last one, in your own words. ${q.prompt}`);
+    if(voiceOn&&SR) listen();
+    return;
+  }
   const ch=el("div","choices");
   q.choices.forEach((c,i)=>{const b=el("button");b.append(el("b",null,LETTERS[i]),el("span",null,c));b.onclick=()=>answer(i,`${LETTERS[i]}: ${c}`);ch.append(b);});
   card.append(ch);box.append(card);
@@ -167,10 +182,33 @@ async function answer(i,spoken){
   }finally{busy=false;}
 }
 
+async function answerOpen(text){
+  text=(text||"").trim();
+  if(busy||!q||q.kind!=="open"||!text) return;busy=true;
+  try{
+    say("You",text);
+    setRing("speaking","Coach agent is grading…");
+    const r=await call("submit_open_answer",{session_key:key,question_id:q.question_id,answer:text});
+    const card=$("q").querySelector(".card");card.querySelectorAll("textarea,button").forEach(b=>b.disabled=true);
+    const fb=el("div","feedback");
+    const label={correct:"Correct.",partial:"Partly there.",incorrect:"Not quite."}[r.verdict];
+    fb.append(el("div",r.verdict==="correct"?"ok":"no",label),el("div",null,r.feedback));
+    const ul=el("ul","points");
+    r.key_points.forEach(p=>{const ok=r.covered.includes(p);ul.append(el("li",ok?"ok":"no",(ok?"✓ ":"✗ ")+p));});
+    fb.append(ul,el("div","by",r.graded_by==="agentcore"?"Graded by the SkillUp coach agent · Strands on Amazon Bedrock AgentCore":"Graded by the offline key-point check"));
+    card.append(fb);
+    const p=await call("get_progress",{session_key:key});
+    $("prog").textContent=`Answered ${p.answered} · correct ${p.correct} · accuracy ${Math.round(p.accuracy*100)}%`;
+    await alexa(r.feedback);
+    busy=false;
+    await showQ();
+  }finally{busy=false;}
+}
+
 function listen(){
   if(!SR||!q||q.done) return;
   const rec=new SR();rec.lang="en-US";rec.interimResults=false;rec.maxAlternatives=3;
-  setRing("listening","Listening… say A, B, C, D or the answer");
+  setRing("listening",q.kind==="open"?"Listening… answer in your own words":"Listening… say A, B, C, D or the answer");
   rec.onresult=e=>window.handleUtterance([...e.results[0]].map(a=>a.transcript));
   rec.onerror=rec.onend=()=>{if($("ring").className==="listening")setRing("","Tap a choice or press 🎤");};
   rec.start();
@@ -179,6 +217,7 @@ function listen(){
 window.handleUtterance=async alts=>{
   if(!q||q.done) return;
   alts=[].concat(alts);
+  if(q.kind==="open") return answerOpen(alts[0]);
   for(const t of alts){const i=parseAnswer(t,q.choices);if(i>=0) return answer(i,t);}
   say("You",alts[0]);await alexa("Sorry, I didn't catch that. Say A, B, C or D.");if(voiceOn)listen();
 };

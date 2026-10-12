@@ -39,7 +39,7 @@ class TestBedrockHook(unittest.TestCase):
         with patch.dict(os.environ, OFF, clear=True):
             with patch.object(tools, "_bedrock_client") as factory:
                 s = tools.start_coaching("context-engineering")
-        self.assertEqual(s["total"], tools.SESSION_SIZE)
+        self.assertEqual(s["total"], tools.SESSION_SIZE + 1)
         factory.assert_not_called()
 
     def test_bedrock_appends_question(self):
@@ -47,7 +47,7 @@ class TestBedrockHook(unittest.TestCase):
         with patch.dict(os.environ, ON):
             with patch.object(tools, "_bedrock_client", return_value=client):
                 s = tools.start_coaching("context-engineering")
-        self.assertEqual(s["total"], tools.SESSION_SIZE + 1)
+        self.assertEqual(s["total"], tools.SESSION_SIZE + 2)  # choices + AI question + open question
         q4 = tools._sessions[s["session_key"]]["bank"][-1]
         self.assertEqual(q4["id"], "llm-1")
         self.assertEqual(q4["card"]["subtitle"], "AI-generated (Amazon Bedrock)")
@@ -67,7 +67,7 @@ class TestBedrockHook(unittest.TestCase):
         with patch.dict(os.environ, ON):
             with patch.object(tools, "_bedrock_client", return_value=client):
                 s = tools.start_coaching("context-engineering")
-        self.assertEqual(s["total"], tools.SESSION_SIZE)
+        self.assertEqual(s["total"], tools.SESSION_SIZE + 1)
 
     def test_bedrock_failure_falls_back_silently(self):
         client = MagicMock()
@@ -77,7 +77,7 @@ class TestBedrockHook(unittest.TestCase):
                 s = tools.start_coaching("context-engineering")
                 q = tools.next_question(s["session_key"])
                 r = tools.submit_answer(s["session_key"], q["question_id"], _wrong(s))
-        self.assertEqual(s["total"], tools.SESSION_SIZE)
+        self.assertEqual(s["total"], tools.SESSION_SIZE + 1)
         self.assertFalse(r["correct"])
         self.assertNotIn("coach_tip", r)
 

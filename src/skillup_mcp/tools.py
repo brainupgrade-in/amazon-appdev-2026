@@ -6,7 +6,7 @@ import uuid
 from functools import lru_cache
 from pathlib import Path
 
-from . import memory
+from . import coach, memory
 
 # Question packs are data: packs/<module>.json (id, title, version, questions with a source URL each).
 PACKS_DIR = Path(os.environ.get("SKILLUP_PACKS_DIR") or Path(__file__).resolve().parents[2] / "packs")
@@ -132,28 +132,65 @@ def start_coaching(topic=DEFAULT_MODULE, learner_id=None):
     extra = _llm_extra_question(pack, [q["prompt"] for q in bank])
     if extra is not None and all(q["id"] != extra["id"] for q in bank):
         bank.append(extra)
-    _sessions[key] = {"topic": pack["id"], "learner": learner, "idx": 0, "answered": 0, "correct": 0, "bank": bank}
-    out = {"session_key": key, "topic": pack["id"], "title": pack["title"], "total": len(bank)}
+    open_q = random.choice(pack["open"]) if pack.get("open") else None  # one spoken, open-ended question last
+    _sessions[key] = {"topic": pack["id"], "learner": learner, "idx": 0, "answered": 0, "correct": 0, "bank": bank,
+                      "open": open_q, "open_done": False}
+    out = {"session_key": key, "topic": pack["id"], "title": pack["title"], "total": _total(_sessions[key])}
     if missed:
         out["welcome_back"] = (f"Welcome back! Last time you missed a question on {missed[0]['subtitle']}. "
                                "Let's try it again first.")
     return out
 
 
+def _total(st):
+    return len(st["bank"]) + (1 if st["open"] else 0)
+
+
+def _open_pending(st):
+    return st["open"] is not None and not st["open_done"] and st["idx"] >= len(st["bank"])
+
+
 def next_question(session_key):
     st = _sessions[session_key]  # KeyError on unknown ->  auth boundary
     bank = st["bank"]
+    if _open_pending(st):
+        o = st["open"]
+        return {
+            "question_id": o["id"],
+            "kind": "open",
+            "prompt": o["prompt"],
+            "choices": [],
+            "card": {"title": o["prompt"][:40], "subtitle": f"{o['subtitle']} · open question", "image": None},
+            "index": len(bank),
+            "total": _total(st),
+        }
     if st["idx"] >= len(bank):
-        return {"done": True, "total": len(bank)}
+        return {"done": True, "total": _total(st)}
     q = bank[st["idx"]]
     return {
         "question_id": q["id"],
+        "kind": "choice",
         "prompt": q["prompt"],
         "choices": q["choices"],
         "card": q["card"],
         "index": st["idx"],
-        "total": len(bank),
+        "total": _total(st),
     }
+
+
+def submit_open_answer(session_key, question_id, answer):
+    """Grade a free-form spoken answer (AgentCore coach agent, local key-point check as fallback)."""
+    st = _sessions[session_key]
+    if not _open_pending(st) or st["open"]["id"] != question_id:
+        raise KeyError(question_id)
+    o = st["open"]
+    result = coach.grade(o, str(answer), st["topic"], st.get("learner"))
+    ok = result["verdict"] == "correct"
+    memory.record(st["topic"], st.get("learner"), o["id"], ok)
+    st["answered"] += 1
+    st["correct"] += 1 if ok else 0
+    st["open_done"] = True
+    return dict(result, key_points=o["key_points"], has_next=False)
 
 
 def submit_answer(session_key, question_id, choice):
@@ -177,7 +214,7 @@ def submit_answer(session_key, question_id, choice):
         "correct": ok,
         "explain": q["explain"],
         "answer": q["choices"][q["answer"]],
-        "has_next": st["idx"] < len(bank),
+        "has_next": st["idx"] < len(bank) or _open_pending(st),
     }
     if not ok:
         tip = _llm_coach_tip(q, picked)
@@ -193,5 +230,5 @@ def get_progress(session_key):
         "answered": st["answered"],
         "correct": st["correct"],
         "accuracy": round(acc, 3),
-        "remaining": len(st["bank"]) - st["idx"],
+        "remaining": len(st["bank"]) - st["idx"] + (1 if st["open"] and not st["open_done"] else 0),
     }

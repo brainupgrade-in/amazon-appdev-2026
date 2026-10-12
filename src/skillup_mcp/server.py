@@ -90,6 +90,20 @@ TOOL_DEFS = [
         },
     },
     {
+        "name": "submit_open_answer",
+        "description": "Submit the learner's free-form spoken answer to the session's open question. The SkillUp "
+        "coach agent on Amazon Bedrock AgentCore Runtime grades it against key points (verdict, feedback).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "session_key": {"type": "string"},
+                "question_id": {"type": "string"},
+                "answer": {"type": "string"},
+            },
+            "required": ["session_key", "question_id", "answer"],
+        },
+    },
+    {
         "name": "get_progress",
         "description": "Get answered/correct/accuracy for a coaching session.",
         "inputSchema": {
@@ -156,6 +170,7 @@ def dispatch(msg, headers=None, session_id=None):
             "start_coaching": coaching.start_coaching,
             "next_question": coaching.next_question,
             "submit_answer": coaching.submit_answer,
+            "submit_open_answer": coaching.submit_open_answer,
             "get_progress": coaching.get_progress,
         }.get(name)
         if fn is None:

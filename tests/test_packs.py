@@ -42,7 +42,7 @@ class TestSessions(unittest.TestCase):
         s = self.start()
         self.assertEqual(s["topic"], "context-engineering")
         self.assertEqual(s["title"], "Prompts and Context Engineering")
-        self.assertEqual(s["total"], tools.SESSION_SIZE)
+        self.assertEqual(s["total"], tools.SESSION_SIZE + 1)
         pack_ids = {q["id"] for q in tools.load_pack("context-engineering")["questions"]}
         self.assertTrue({q["id"] for q in tools._sessions[s["session_key"]]["bank"]} <= pack_ids)
 
