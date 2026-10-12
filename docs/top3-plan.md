@@ -41,7 +41,11 @@ AgentCore APIs (Runtime, Memory, Gateway) verified reachable in **ap-south-1** f
 
 ## Work items (in order)
 
-### S. Safety first (13 Oct, ~2 h)
+### S. Safety first (13 Oct, ~2 h) — DONE 13 Oct
+- Done: ECR `skillup-coach:submitted-v1` = live digest `sha256:d7af80…`; AWS Budget `skillup-coach-credit-burn`
+  ($60/month excl. credits, alerts 50%/80% actual + 100% forecast → rajesh@unigps.in; Oct gross to 12 Oct $16.35);
+  `start_coaching` capped at 30/hour per client IP; `scripts/smoke.py` passes live + local; story wording fixed in
+  `docs/devpost-submission.md` (Devpost copy updated with item 5).
 - Tag the current image `skillup-coach:submitted-v1` before any deploy; new features behind env flags so the
   submitted behaviour stays one flag away.
 - AWS Budgets alarm on the $150 credit (e.g. 50% / 80%); simple per-IP rate limit on `/mcp`.
@@ -69,6 +73,8 @@ Module B — **Building agents with Amazon Bedrock AgentCore** (user decision, 1
   the entrant's agentic-AI training courses.
 
 Both modules:
+- Packs stay **public** in the repo (user decision, 13 Oct) as versioned data files (one JSON per module, a
+  `source` URL per question), loaded from a configurable directory — not hard-coded Python.
 - Fix the hard-coded "Linux-basics" wording in `_llm_extra_question` so AI questions follow the session's module.
 - Learner picks a module by voice ("coach me on context engineering" / "coach me on AgentCore"); update demo
   buttons, Agent Skill, README, tests, Devpost story and video.
@@ -84,6 +90,8 @@ Both modules:
 ### 1. Cross-session memory + adaptive practice — AgentCore Memory (14–15 Oct)
 - Learner id: random UUID generated in the browser, kept in localStorage; no login, no names, no PII
   (simulated Alexa+). Privacy note in the README.
+- Memory namespace `org/cohort/learner` (hackathon: `public/demo/<uuid>`); each answer logged as an event
+  (module, question, correct, time) so progress views are possible later.
 - AgentCore Memory stores each learner's answers and missed topics (long-term memory strategy); MCP sessions stop
   living only in process memory.
 - Spaced repetition: missed topics return early in later sessions. Greeting names the topic, e.g. "Welcome back —

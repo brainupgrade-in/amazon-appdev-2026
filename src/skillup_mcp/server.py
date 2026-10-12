@@ -7,6 +7,8 @@ GET returns 405 (spec-allowed when no SSE stream is offered).
 import argparse
 import json
 import os
+import threading
+import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,6 +20,29 @@ PROTOCOL_VERSION = "2025-11-25"
 DEMO_PAGE = Path(__file__).resolve().parents[2] / "demo" / "index.html"
 
 _mcp_sessions: set = set()
+
+# start_coaching calls Bedrock; cap it per client IP so a public endpoint can't drain the credit.
+STARTS_PER_HOUR = 30
+_starts: dict = {}
+_starts_lock = threading.Lock()
+
+
+def allow_start(ip, now=None):
+    now = time.time() if now is None else now
+    with _starts_lock:
+        recent = [t for t in _starts.get(ip, []) if now - t < 3600]
+        if len(recent) >= STARTS_PER_HOUR:
+            _starts[ip] = recent
+            return False
+        recent.append(now)
+        _starts[ip] = recent
+        return True
+
+
+def client_ip(headers, peer):
+    """App Runner sits behind a proxy: the first X-Forwarded-For entry is the client."""
+    fwd = headers.get("X-Forwarded-For", "")
+    return fwd.split(",")[0].strip() or peer
 
 TOOL_DEFS = [
     {
@@ -177,6 +202,14 @@ class Handler(BaseHTTPRequestHandler):
             if ver is not None and ver != PROTOCOL_VERSION:
                 self._send(400, {"error": f"unsupported protocol version {ver}"})
                 return
+        if (msg.get("method") == "tools/call" and (msg.get("params") or {}).get("name") == "start_coaching"
+                and not allow_start(client_ip(self.headers, self.client_address[0]))):
+            self._send(
+                200,
+                {"jsonrpc": "2.0", "id": msg.get("id"),
+                 "error": {"code": -32000, "message": "rate limited: too many sessions, try again later"}},
+            )
+            return
         try:
             out = dispatch(msg, dict(self.headers), self.headers.get("MCP-Session-Id"))
         except KeyError as e:

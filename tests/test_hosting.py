@@ -56,3 +56,29 @@ class TestHttpSurface(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestRateLimit(unittest.TestCase):
+    """start_coaching calls Bedrock, so it is capped per client IP (public endpoint on a fixed credit)."""
+
+    def setUp(self):
+        server._starts.clear()
+
+    def test_allows_up_to_limit_then_blocks(self):
+        for _ in range(server.STARTS_PER_HOUR):
+            self.assertTrue(server.allow_start("1.2.3.4", now=1000.0))
+        self.assertFalse(server.allow_start("1.2.3.4", now=1000.0))
+
+    def test_limit_is_per_ip(self):
+        for _ in range(server.STARTS_PER_HOUR):
+            server.allow_start("1.2.3.4", now=1000.0)
+        self.assertTrue(server.allow_start("5.6.7.8", now=1000.0))
+
+    def test_window_slides(self):
+        for _ in range(server.STARTS_PER_HOUR):
+            server.allow_start("1.2.3.4", now=1000.0)
+        self.assertTrue(server.allow_start("1.2.3.4", now=1000.0 + 3601))
+
+    def test_client_ip_prefers_forwarded_for(self):
+        self.assertEqual(server.client_ip({"X-Forwarded-For": "9.9.9.9, 10.0.0.1"}, "10.0.0.2"), "9.9.9.9")
+        self.assertEqual(server.client_ip({}, "10.0.0.2"), "10.0.0.2")

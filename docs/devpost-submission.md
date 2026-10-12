@@ -15,7 +15,7 @@ A self-hosted MCP server for Alexa+ that coaches junior IT learners by voice: qu
 
 ### About the project
 ## Inspiration
-I train junior IT engineers in DevOps and agentic AI. They learn in short gaps — on a commute, between tickets — where opening docs doesn't happen. A coach you can just talk to, that remembers where you are and explains *why* you got it wrong, fits those gaps.
+I train junior IT engineers in DevOps and agentic AI. They learn in short gaps — on a commute, between tickets — where opening docs doesn't happen. A coach you can just talk to, that keeps track of your progress and explains *why* you got it wrong, fits those gaps.
 
 ## What it does
 Say "Alexa, coach me on Linux basics" and SkillUp Coach starts a session: it reads each question with A–D choices aloud, listens for your answer ("B", "the second one", or "slash etc slash passwd"), shows a card, and tells you if you're right. When you're wrong, Amazon Bedrock writes a short, spoken coach tip about *your* mistake. Each session also gets one fresh AI-generated question, and progress (answered, correct, accuracy) carries across turns.
